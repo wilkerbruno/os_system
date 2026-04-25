@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>TechOS — Sistema de OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--sf:#161b22;--sf2:#1c2333;--sf3:#21262d;--bd:#30363d;--ac:#f78166;--ac2:#58a6ff;--ac3:#3fb950;--wn:#d29922;--tx:#e6edf3;--tx2:#8b949e;--tx3:#484f58;--r:12px;--rs:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:15px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:99px}
+
+/* LOGIN */
+#login-wrap{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.lbox{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:38px 34px;width:100%;max-width:410px;animation:su .3s ease}
+.llogo{display:flex;align-items:center;gap:12px;margin-bottom:30px}
+.lic{width:42px;height:42px;background:linear-gradient(135deg,var(--ac),var(--wn));border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;flex-shrink:0}
+.lbadge{background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3);color:var(--wn);border-radius:var(--rs);padding:9px 13px;font-size:12px;margin-bottom:14px}
+
+/* APP */
+#app{display:none;flex:1;height:100vh;overflow:hidden}
+#sidebar{width:238px;min-width:238px;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;transition:transform .3s;z-index:100;height:100vh}
+.slogo{padding:18px 18px 12px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--bd)}
+.slic{width:33px;height:33px;background:linear-gradient(135deg,var(--ac),var(--wn));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;flex-shrink:0}
+.uchip{margin:9px 11px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:7px 11px;display:flex;align-items:center;gap:8px}
+.uav{width:27px;height:27px;border-radius:50%;background:linear-gradient(135deg,var(--ac2),var(--ac3));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0}
+.uname{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urole{font-size:10px;color:var(--tx2)}
+.ssec{padding:10px 11px 3px}
+.slbl{font-size:10px;font-weight:600;color:var(--tx3);letter-spacing:1.2px;text-transform:uppercase;padding:0 8px;margin-bottom:3px}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:var(--rs);cursor:pointer;transition:all .15s;color:var(--tx2);font-size:13px;font-weight:500;user-select:none}
+.ni:hover{background:var(--sf2);color:var(--tx)}.ni.active{background:rgba(247,129,102,.12);color:var(--ac)}
+.ni.hide{display:none}.hide{display:none !important}
+.sfooter{margin-top:auto;padding:12px 14px;border-top:1px solid var(--bd);font-size:11px;color:var(--tx3);display:flex;align-items:center;justify-content:space-between}
+.boutl{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;padding:3px 7px;border-radius:6px}
+.boutl:hover{color:var(--ac)}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tbar{height:50px;min-height:50px;background:var(--sf);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:11px;padding:0 18px}
+.tbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;flex:1}
+.mbtn{display:none;background:none;border:none;color:var(--tx);cursor:pointer;padding:6px}
+
+#ct{flex:1;overflow-y:auto;padding:18px}
+
+/* VIEWS */
+.vw{display:none}.vw.active{display:block}
+
+/* CARDS */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.ctitle{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* STATS */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px;margin-bottom:14px}
+.scard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:13px 16px;position:relative;overflow:hidden}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.scard.ac::before{background:var(--ac)}.scard.bl::before{background:var(--ac2)}
+.scard.gr::before{background:var(--ac3)}.scard.wn::before{background:var(--wn)}
+.scard.pu::before{background:#bc8cff}
+.sv{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;line-height:1}
+.sl{font-size:11px;color:var(--tx2);margin-top:3px;font-weight:500}
+
+/* FORMS */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fg.c3{grid-template-columns:1fr 1fr 1fr}.fg.c1{grid-template-columns:1fr}
+.fgrp{display:flex;flex-direction:column;gap:3px}.fgrp.s2{grid-column:span 2}.fgrp.s3{grid-column:span 3}
+label{font-size:11px;font-weight:600;color:var(--tx2)}
+input,select,textarea{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .15s,box-shadow .15s;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac2);box-shadow:0 0 0 3px rgba(88,166,255,.1)}
+textarea{resize:vertical;min-height:68px}
+select option{background:var(--sf2)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:none;transition:all .15s;user-select:none}
+.bp{background:var(--ac);color:#fff}.bp:hover{background:#e5694e}
+.bs{background:var(--sf2);color:var(--tx);border:1px solid var(--bd)}.bs:hover{background:var(--sf3)}
+.bb{background:var(--ac2);color:#fff}.bb:hover{background:#4090e0}
+.bg{background:var(--ac3);color:#fff}.bg:hover{background:#2fa045}
+.bw{background:var(--wn);color:#fff}
+.bd2{background:#da3633;color:#fff}.bd2:hover{background:#b92525}
+.bpu{background:#bc8cff;color:#fff}.bpu:hover{background:#a070e0}
+.bsm{padding:4px 10px;font-size:12px}.bic{padding:5px}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;white-space:nowrap}
+th{background:var(--sf2);font-size:10px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.6px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--bd)}
+td{padding:9px 12px;border-bottom:1px solid var(--bd);font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--sf2)}
+.ac-cell{display:flex;gap:5px}
+
+/* BADGE */
+.bdg{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600}
+.bor{background:rgba(247,129,102,.15);color:var(--ac)}.bbl{background:rgba(88,166,255,.15);color:var(--ac2)}
+.bgr{background:rgba(63,185,80,.15);color:var(--ac3)}.bwn{background:rgba(210,153,34,.15);color:var(--wn)}
+.bgy{background:var(--sf2);color:var(--tx2)}.brd{background:rgba(248,81,73,.15);color:#f85149}
+.bpu2{background:rgba(188,140,255,.15);color:#bc8cff}
+
+/* MODAL */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;align-items:center;justify-content:center;padding:14px}
+.moverlay.open{display:flex}
+.modal{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);width:100%;max-width:610px;max-height:92vh;overflow-y:auto;animation:su .2s ease}
+.mlg{max-width:790px}.mxl{max-width:960px}
+@keyframes su{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhdr{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between}
+.mtitle{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
+.mcls{background:none;border:none;color:var(--tx2);cursor:pointer;padding:3px;font-size:17px;line-height:1}
+.mcls:hover{color:var(--tx)}
+.mbody{padding:16px 20px}.mftr{padding:0 20px 16px;display:flex;gap:8px;justify-content:flex-end}
+
+/* SIGN PAD */
+.sigc{border:2px dashed var(--bd);border-radius:var(--rs);background:var(--sf2);overflow:hidden;position:relative}
+.sigcv{width:100%;display:block;touch-action:none}
+.sigph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--tx3);font-size:13px;pointer-events:none;text-align:center}
+.sstep{display:none}.sstep.active{display:block}
+.ossc{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:11px 13px;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+.ossc.signed{border-color:var(--ac3);background:rgba(63,185,80,.05)}
+.osnum{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--ac2);width:68px;flex-shrink:0}
+
+/* STATUS CHIPS */
+.srow{display:flex;flex-wrap:wrap;gap:6px}
+.schip{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bd);color:var(--tx2);transition:all .15s;user-select:none}
+.schip.sel{border-color:var(--ac2);color:var(--ac2);background:rgba(88,166,255,.1)}
+.schip input{display:none}
+
+/* PARTS ITEM */
+.pitm{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:11px;margin-bottom:7px}
+.pitgrid{display:grid;grid-template-columns:90px 1fr 70px 70px 1fr auto;gap:7px;align-items:end}
+
+/* MISC */
+.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:7px}
+.stitle{font-family:'Syne',sans-serif;font-weight:800;font-size:19px}
+.ssub{color:var(--tx2);font-size:12px;margin-top:2px}
+.alert{padding:9px 13px;border-radius:var(--rs);font-size:12px;margin-bottom:9px;display:flex;align-items:flex-start;gap:6px}
+.ai{background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.25);color:var(--ac2)}
+.aw{background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.25);color:var(--wn)}
+.aok{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.25);color:var(--ac3)}
+.ae{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.25);color:#f85149}
+.sbar{position:relative;margin-bottom:10px}
+.sbar input{padding-left:32px}
+.sbar svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--tx3)}
+#fab{position:fixed;bottom:18px;right:18px;z-index:200;background:var(--ac3);color:#fff;border:none;border-radius:99px;padding:11px 18px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 18px rgba(63,185,80,.4);display:none;align-items:center;gap:7px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 4px 18px rgba(63,185,80,.4)}50%{box-shadow:0 4px 28px rgba(63,185,80,.7)}}
+.sbov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.sbov.open{display:block}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf3);border:1px solid var(--bd);border-radius:var(--r);padding:9px 16px;font-size:13px;z-index:2000;transition:transform .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+@media(max-width:768px){
+  #sidebar{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%)}
+  #sidebar.open{transform:translateX(0)}
+  .mbtn{display:flex}.fg,.fg.c3{grid-template-columns:1fr}
+  .fgrp.s2,.fgrp.s3{grid-column:span 1}
+  #ct{padding:12px}.sgrid{grid-template-columns:repeat(2,1fr)}
+  .pitgrid{grid-template-columns:1fr 1fr;gap:5px}
+}
+@media print{#sidebar,.tbar,.btn,.moverlay,#fab{display:none!important}#ct{overflow:visible!important}}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-wrap">
+  <div class="lbox">
+    <div class="llogo">
+      <div class="lic">T</div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:21px">TechOS</div>
+        <div style="font-size:11px;color:var(--tx2)">GESTÃO DE SERVIÇOS</div>
+      </div>
+    </div>
+    <!-- Step 1: login -->
+    <div id="ls1">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:18px">Entrar no sistema</div>
+      <div class="fg c1" style="gap:9px;margin-bottom:14px">
+        <div class="fgrp"><label>USUÁRIO OU EMAIL</label>
+          <input type="text" id="l-user" placeholder="usuário" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+        </div>
+        <div class="fgrp"><label>SENHA</label>
+          <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+      </div>
+      <div id="lerr" class="alert ae" style="display:none"></div>
+      <button class="btn bp" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">Entrar →</button>
+      <p style="text-align:center;font-size:11px;color:var(--tx3);margin-top:12px">Não tem acesso? Solicite ao administrador.</p>
+    </div>
+    <!-- Step 2: set password -->
+    <div id="ls2" style="display:none">
+      <div class="lbadge">⚠️ Primeiro acesso — defina sua senha para continuar.</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:16px">Criar minha senha</div>
+      <div class="fg c1" style="gap:9px;margin-bottom:14px">
+        <div class="fgrp"><label>NOVA SENHA (mín. 6 caracteres)</label>
+          <input type="password" id="np1" placeholder="Nova senha">
+        </div>
+        <div class="fgrp"><label>CONFIRMAR SENHA</label>
+          <input type="password" id="np2" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')doSetPw()">
+        </div>
+      </div>
+      <div id="pwerr" class="alert ae" style="display:none"></div>
+      <button class="btn bg" style="width:100%;justify-content:center;padding:10px" onclick="doSetPw()">Salvar e Entrar ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app" style="display:none;flex:1;height:100vh;overflow:hidden">
+<nav id="sidebar">
+  <div class="slogo">
+    <div class="slic">T</div>
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px">TechOS</div>
+      <div style="font-size:10px;color:var(--tx2)">GESTÃO DE SERVIÇOS</div>
+    </div>
+  </div>
+  <div class="uchip">
+    <div class="uav" id="uav">A</div>
+    <div style="flex:1;min-width:0">
+      <div class="uname" id="uname">Usuário</div>
+      <div class="urole" id="urole">—</div>
+    </div>
+  </div>
+
+  <div class="ssec">
+    <div class="slbl">Principal</div>
+    <div class="ni active" data-view="dashboard">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+    <div class="ni" data-view="orders">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Ordens de Serviço</div>
+    <div class="ni r-tech r-admin" data-view="new-order">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nova OS</div>
+    <div class="ni" data-view="sign">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Assinar OSs</div>
+    <div class="ni r-tech r-admin" data-view="parts">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Solicitar Peças</div>
+    <div class="ni" data-view="equipment">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Equipamentos</div>
+  </div>
+
+  <div class="ssec r-admin">
+    <div class="slbl r-admin">Cadastros</div>
+    <div class="ni r-admin" data-view="clients">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
+    <div class="ni r-admin" data-view="stores">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Lojas</div>
+    <div class="ni r-admin" data-view="technicians">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Técnicos</div>
+    <div class="ni r-admin" data-view="users">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/><circle cx="17" cy="15" r="3"/><line x1="17" y1="13" x2="17" y2="17"/></svg>Usuários</div>
+  </div>
+
+  <div class="ssec">
+    <div class="slbl">Sistema</div>
+    <div class="ni" data-view="company">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 115 19.07"/></svg>Minha Empresa</div>
+  </div>
+
+  <div class="sfooter">
+    <span>TechOS v2.0</span>
+    <button class="boutl" onclick="doLogout()">⬅ Sair</button>
+  </div>
+</nav>
+<div class="sbov" id="sbov"></div>
+
+<div id="main">
+  <div class="tbar">
+    <button class="mbtn" id="mbtn">
+      <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="tbar-title" id="ttitle">Dashboard</div>
+  </div>
+  <div id="ct">
+
+  <!-- DASHBOARD -->
+  <div class="vw active" id="vw-dashboard">
+    <div class="sgrid" id="sgrid"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="card"><div class="ctitle">📋 OSs Recentes</div><div id="recent-list"></div></div>
+      <div class="card"><div class="ctitle">⏳ Aguardando Assinatura Hoje</div><div id="unsigned-list"></div></div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="vw" id="vw-orders">
+    <div class="shdr">
+      <div><div class="stitle">Ordens de Serviço</div></div>
+      <button class="btn bp r-tech r-admin" onclick="showView('new-order')">+ Nova OS</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
+        <input type="date" id="f-date" style="width:145px" onchange="loadOrders()">
+        <select id="f-status" style="width:145px" onchange="loadOrders()">
+          <option value="">Todos status</option>
+          <option>Aberta</option><option>Em andamento</option><option>Concluída</option><option>Assinada</option>
+        </select>
+        <select id="f-tech" style="width:185px" onchange="loadOrders()">
+          <option value="">Todos técnicos</option>
+        </select>
+      </div>
+      <div class="tw"><table><thead><tr><th>OS</th><th>Data</th><th>Loja</th><th>Equipamento</th><th>Técnico</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="orders-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- NEW ORDER -->
+  <div class="vw" id="vw-new-order">
+    <div class="shdr"><div><div class="stitle" id="os-ftitle">Nova OS</div></div></div>
+    <form id="os-form" onsubmit="submitOS(event)">
+      <div class="card">
+        <div class="ctitle">📋 Atendimento</div>
+        <div class="fg">
+          <div class="fgrp"><label>TÉCNICO *</label><select id="os-tech" required onchange="onTC()"><option value="">Selecione</option></select></div>
+          <div class="fgrp"><label>LOJA *</label><select id="os-store" required onchange="onSC()"><option value="">Selecione</option></select></div>
+          <div class="fgrp"><label>DATA CHAMADO</label><input type="date" id="os-cd"></div>
+          <div class="fgrp"><label>HORA CHAMADO</label><input type="time" id="os-ct"></div>
+          <div class="fgrp"><label>TIPO CHAMADO</label>
+            <select id="os-ctype"><option>Preventivo</option><option>Corretivo</option><option>Instalação</option><option>Treinamento</option><option>Verificação</option></select>
+          </div>
+          <div class="fgrp"><label>DATA ATENDIMENTO *</label><input type="date" id="os-date" required></div>
+          <div class="fgrp"><label>HORA INÍCIO</label><input type="time" id="os-ti"></div>
+          <div class="fgrp"><label>HORA TÉRMINO</label><input type="time" id="os-tf"></div>
+          <div class="fgrp"><label>TEMPO VIAGEM</label><input type="text" id="os-tv" placeholder="00:30"></div>
+        </div>
+      </div>
+      <div class="card" id="store-info" style="display:none">
+        <div class="ctitle">🏪 Dados da Loja</div>
+        <div class="fg">
+          <div class="fgrp"><label>CLIENTE</label><input type="text" id="si-cli" readonly></div>
+          <div class="fgrp"><label>LOJA</label><input type="text" id="si-loja" readonly></div>
+          <div class="fgrp"><label>CNPJ</label><input type="text" id="si-cnpj" readonly></div>
+          <div class="fgrp"><label>TELEFONE</label><input type="text" id="si-tel" readonly></div>
+          <div class="fgrp s2"><label>ENDEREÇO</label><input type="text" id="si-end" readonly></div>
+          <div class="fgrp"><label>GERENTE</label><input type="text" id="si-ger" readonly></div>
+          <div class="fgrp"><label>TEL. GERENTE</label><input type="text" id="si-gtel" readonly></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🖥️ Equipamento</div>
+        <div class="fgrp" style="margin-bottom:10px"><label>EQUIPAMENTO *</label>
+          <select id="os-equip" required onchange="onEC()"><option value="">Selecione a loja primeiro</option></select>
+        </div>
+        <div id="eq-info" style="display:none">
+          <div class="fg c3">
+            <div class="fgrp"><label>TIPO</label><input type="text" id="eq-tp" readonly></div>
+            <div class="fgrp"><label>MARCA</label><input type="text" id="eq-br" readonly></div>
+            <div class="fgrp"><label>MODELO</label><input type="text" id="eq-mo" readonly></div>
+            <div class="fgrp"><label>SÉRIE</label><input type="text" id="eq-sr" readonly></div>
+            <div class="fgrp"><label>LACRE ATUAL</label><input type="text" id="eq-la" readonly></div>
+            <div class="fgrp"><label>ETIQUETA</label><input type="text" id="eq-et" readonly></div>
+            <div class="fgrp"><label>C. MÁXIMA</label><input type="text" id="eq-cm" readonly></div>
+            <div class="fgrp"><label>PORTARIA</label><input type="text" id="eq-po" readonly></div>
+            <div class="fgrp"><label>MICT</label><input type="text" id="eq-mi" readonly></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🔧 Serviços</div>
+        <div class="fg c1">
+          <div class="fgrp"><label>SINTOMA</label><textarea id="os-sy" rows="2" placeholder="Problema relatado..."></textarea></div>
+          <div class="fgrp"><label>SERVIÇOS EXECUTADOS</label><textarea id="os-sv" rows="3" placeholder="Serviços realizados..."></textarea></div>
+          <div class="fgrp"><label>AÇÕES / PEÇAS</label><textarea id="os-ac" rows="2" placeholder="Peças trocadas, ajustes..."></textarea></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">📊 Status Final</div>
+        <div class="srow">
+          <label class="schip" onclick="sels(this)"><input type="radio" name="fs" value="Aguardando aprovação de orçamento"> Ag. orçamento</label>
+          <label class="schip" onclick="sels(this)"><input type="radio" name="fs" value="Equipamento recolhido p/oficina"> Recolhido</label>
+          <label class="schip" onclick="sels(this)"><input type="radio" name="fs" value="Orçamento não aprovado"> Orç. reprovado</label>
+          <label class="schip" onclick="sels(this)"><input type="radio" name="fs" value="Pendente peça / módulo"> Pendente peça</label>
+          <label class="schip" onclick="sels(this)"><input type="radio" name="fs" value="Sem condições de conserto"> Sem conserto</label>
+          <label class="schip sel" onclick="sels(this)"><input type="radio" name="fs" value="Atendido" checked> Atendido ✓</label>
+          <label class="schip" onclick="sels(this)"><input type="radio" name="fs" value="Cancelado"> Cancelado</label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">💰 Financeiro (R$)</div>
+        <div class="fg">
+          <div class="fgrp"><label>PEÇAS</label><input type="number" id="os-pv" step="0.01" value="0" oninput="calcT()"></div>
+          <div class="fgrp"><label>SERVIÇOS</label><input type="number" id="os-sv2" step="0.01" value="0" oninput="calcT()"></div>
+          <div class="fgrp"><label>DESPESAS</label><input type="number" id="os-ex" step="0.01" value="0" oninput="calcT()"></div>
+          <div class="fgrp"><label>DESC/ACRESC.</label><input type="number" id="os-dc" step="0.01" value="0" oninput="calcT()"></div>
+          <div class="fgrp s2"><label>TOTAL O.S.</label><input type="text" id="os-tot" readonly style="font-weight:700;color:var(--ac3);font-size:15px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="fgrp"><label>OBSERVAÇÕES</label><textarea id="os-nt" rows="2"></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:28px">
+        <button type="submit" class="btn bp" id="os-sbtn">✓ Salvar OS</button>
+        <button type="button" class="btn bs" onclick="showView('orders')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- SIGN -->
+  <div class="vw" id="vw-sign">
+    <div class="shdr"><div><div class="stitle">Assinar OSs</div><div class="ssub">Gerente assina uma vez para todas as OSs do dia</div></div></div>
+    <div class="sstep active" id="ss1">
+      <div class="card">
+        <div class="ctitle">1. Filtrar OSs pendentes</div>
+        <div class="fg">
+          <div class="fgrp"><label>TÉCNICO</label><select id="sg-tech"><option value="">Todos</option></select></div>
+          <div class="fgrp"><label>DATA DO ATENDIMENTO</label><input type="date" id="sg-date"></div>
+        </div>
+        <button class="btn bb" style="margin-top:10px" onclick="loadSignOrders()">🔍 Buscar OSs Pendentes</button>
+      </div>
+    </div>
+    <div class="sstep" id="ss2">
+      <div class="card">
+        <div class="ctitle">2. OSs encontradas</div>
+        <div id="sg-list"></div>
+        <div style="margin-top:9px;display:flex;gap:7px">
+          <button class="btn bp" onclick="goToSig()">Assinar →</button>
+          <button class="btn bs" onclick="showSS(1)">Voltar</button>
+        </div>
+      </div>
+    </div>
+    <div class="sstep" id="ss3">
+      <div class="card">
+        <div class="ctitle">3. Identificação do Responsável</div>
+        <div class="fg">
+          <div class="fgrp"><label>NOME COMPLETO *</label><input type="text" id="sg-name" oninput="chkMgr()"></div>
+          <div class="fgrp"><label>CARGO *</label><input type="text" id="sg-role" placeholder="Gerente, Supervisor..."></div>
+        </div>
+        <div class="alert ai" style="margin-top:8px;font-size:11px">Se for o gerente cadastrado da loja, o cargo é preenchido automaticamente.</div>
+      </div>
+      <div class="card">
+        <div class="ctitle">4. Assinatura Digital</div>
+        <p style="font-size:12px;color:var(--tx2);margin-bottom:9px">Assine com o dedo (celular) ou mouse. Aplicada em todas as OSs listadas.</p>
+        <div class="sigc" style="height:185px"><canvas id="sigcv" class="sigcv"></canvas><div class="sigph" id="sigph">✍️ Assine aqui</div></div>
+        <div style="display:flex;gap:7px;margin-top:7px;align-items:center">
+          <button class="btn bs bsm" onclick="clrSig()">Limpar</button>
+          <span style="font-size:11px;color:var(--tx3)">Use dedo ou mouse</span>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:7px">
+          <button class="btn bg" onclick="applySigs()">✓ Confirmar e Assinar Todas</button>
+          <button class="btn bs" onclick="showSS(2)">Voltar</button>
+        </div>
+      </div>
+    </div>
+    <div class="sstep" id="ss4">
+      <div class="card" style="text-align:center;padding:38px">
+        <div style="font-size:54px;margin-bottom:13px">✅</div>
+        <div class="stitle" style="margin-bottom:7px">Assinatura Concluída!</div>
+        <div style="color:var(--tx2);margin-bottom:18px" id="sg-succ"></div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button class="btn bb" onclick="showView('orders')">Ver Ordens</button>
+          <button class="btn bs" onclick="rstSign()">Nova Assinatura</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTS -->
+  <div class="vw" id="vw-parts">
+    <div class="shdr">
+      <div><div class="stitle">Solicitar Peças</div><div class="ssub">Registre e envie por email ao almoxarifado</div></div>
+      <button class="btn bp" onclick="openPM()">+ Nova Solicitação</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:7px;margin-bottom:9px">
+        <select id="pf-st" style="width:155px" onchange="loadParts()">
+          <option value="">Todos status</option>
+          <option>Pendente</option><option>Aprovada</option><option>Reprovada</option><option>Entregue</option>
+        </select>
+      </div>
+      <div class="tw"><table><thead><tr><th>Nº</th><th>Data</th><th>Técnico</th><th>Loja</th><th>Equipamento</th><th>Urgência</th><th>Status</th><th>Email</th><th>Ações</th></tr></thead>
+      <tbody id="parts-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div class="vw" id="vw-clients">
+    <div class="shdr"><div><div class="stitle">Clientes</div></div><button class="btn bp" onclick="openCM()">+ Novo Cliente</button></div>
+    <div class="card">
+      <div class="sbar"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="c-srch" placeholder="Buscar..." oninput="renderClients()"></div>
+      <div class="tw"><table><thead><tr><th>Nome</th><th>CNPJ/CPF</th><th>Telefone</th><th>Cidade</th><th>Ações</th></tr></thead><tbody id="c-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- STORES -->
+  <div class="vw" id="vw-stores">
+    <div class="shdr"><div><div class="stitle">Lojas</div></div><button class="btn bp r-admin" onclick="openSM()">+ Nova Loja</button></div>
+    <div class="card">
+      <div class="sbar"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="s-srch" placeholder="Buscar..." oninput="renderStores()"></div>
+      <div class="tw"><table><thead><tr><th>Loja</th><th>Cliente</th><th>CNPJ</th><th>Cidade</th><th>Gerente</th><th>Ações</th></tr></thead><tbody id="s-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT -->
+  <div class="vw" id="vw-equipment">
+    <div class="shdr"><div><div class="stitle">Equipamentos</div></div><button class="btn bp r-admin" onclick="openEM()">+ Novo Equipamento</button></div>
+    <div class="card">
+      <div style="display:flex;gap:7px;margin-bottom:9px;flex-wrap:wrap">
+        <div class="sbar" style="flex:1;min-width:170px;margin-bottom:0"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="e-srch" placeholder="Buscar..." oninput="renderEquip()"></div>
+        <select id="e-sf" style="width:185px" onchange="renderEquip()"><option value="">Todas as lojas</option></select>
+      </div>
+      <div class="tw"><table><thead><tr><th>Equipamento</th><th>Tipo</th><th>Marca/Modelo</th><th>Série</th><th>Loja</th><th>Ações</th></tr></thead><tbody id="e-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- TECHNICIANS -->
+  <div class="vw" id="vw-technicians">
+    <div class="shdr"><div><div class="stitle">Técnicos</div></div><button class="btn bp" onclick="openTM()">+ Novo Técnico</button></div>
+    <div class="card">
+      <div class="tw"><table><thead><tr><th>Nome</th><th>Telefone</th><th>Email</th><th>RG</th><th>Ações</th></tr></thead><tbody id="t-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div class="vw" id="vw-users">
+    <div class="shdr"><div><div class="stitle">Usuários</div><div class="ssub">Somente admins cadastram usuários</div></div><button class="btn bp" onclick="openUM()">+ Novo Usuário</button></div>
+    <div class="card">
+      <div class="tw"><table><thead><tr><th>Nome</th><th>Usuário</th><th>Perfil</th><th>Vínculo</th><th>1º Login</th><th>Ações</th></tr></thead><tbody id="u-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- COMPANY -->
+  <div class="vw" id="vw-company">
+    <div class="shdr"><div><div class="stitle">Minha Empresa</div></div></div>
+    <!-- Banner somente leitura para não-admins -->
+    <div id="co-readonly-banner" class="alert aw" style="display:none;margin-bottom:12px">
+      🔒 Você está visualizando os dados da empresa. Somente administradores podem editar.
+    </div>
+    <div class="card">
+      <div class="ctitle">🏢 Dados da Empresa</div>
+      <div class="fg">
+        <div class="fgrp s2"><label>RAZÃO SOCIAL</label><input type="text" id="co-n" class="co-field"></div>
+        <div class="fgrp"><label>CNPJ</label><input type="text" id="co-c" class="co-field"></div>
+        <div class="fgrp"><label>TELEFONE</label><input type="text" id="co-p" class="co-field"></div>
+        <div class="fgrp s2"><label>E-MAIL</label><input type="text" id="co-e" class="co-field"></div>
+        <div class="fgrp s2"><label>ENDEREÇO</label><input type="text" id="co-a" class="co-field"></div>
+        <div class="fgrp"><label>CIDADE</label><input type="text" id="co-ci" class="co-field"></div>
+        <div class="fgrp"><label>ESTADO</label><input type="text" id="co-st" class="co-field"></div>
+        <div class="fgrp"><label>CEP</label><input type="text" id="co-z" class="co-field"></div>
+        <div class="fgrp"><label>WEBSITE</label><input type="text" id="co-w" class="co-field"></div>
+        <div class="fgrp"><label>INSC. MUNICIPAL</label><input type="text" id="co-im" class="co-field"></div>
+        <div class="fgrp"><label>INSC. ESTADUAL</label><input type="text" id="co-ie" class="co-field"></div>
+      </div>
+    </div>
+    <!-- Card SMTP: somente admin visualiza -->
+    <div class="card r-admin">
+      <div class="ctitle">📧 Configuração de Email (SMTP)</div>
+      <div class="fg">
+        <div class="fgrp"><label>SERVIDOR SMTP</label><input type="text" id="co-sh" placeholder="smtp.gmail.com"></div>
+        <div class="fgrp"><label>PORTA</label><input type="number" id="co-sp" value="587"></div>
+        <div class="fgrp"><label>USUÁRIO SMTP</label><input type="text" id="co-su" placeholder="seu@email.com"></div>
+        <div class="fgrp"><label>SENHA SMTP</label><input type="password" id="co-spw" placeholder="senha ou app password"></div>
+        <div class="fgrp"><label>EMAIL REMETENTE</label><input type="text" id="co-sf" placeholder="noreply@empresa.com"></div>
+        <div class="fgrp"><label>EMAIL DESTINO DE PEÇAS</label><input type="text" id="co-pe" placeholder="compras@empresa.com, estoque@empresa.com"></div>
+      </div>
+      <div style="margin-top:9px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="fgrp" style="flex:1;min-width:185px"><label>TESTAR: enviar email para</label><input type="text" id="test-to" placeholder="email@teste.com"></div>
+        <button class="btn bb bsm" onclick="testEmail()">Testar Email</button>
+        <span id="test-res" style="font-size:12px;align-self:center"></span>
+      </div>
+    </div>
+    <!-- Botão salvar: somente admin -->
+    <div style="margin-bottom:28px" id="co-save-btn">
+      <button class="btn bp" onclick="saveCo()">✓ Salvar</button>
+    </div>
+  </div>
+
+  </div><!-- /ct -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- FAB -->
+<button id="fab" onclick="showView('sign')">✍️ Assinar OSs<span id="fabn" style="background:#fff;color:var(--ac3);border-radius:99px;padding:1px 7px;font-size:11px;font-weight:800"></span></button>
+<div id="toast"></div>
+
+<!-- ══ MODALS ══ -->
+<!-- Client -->
+<div class="moverlay" id="m-client">
+  <div class="modal"><div class="mhdr"><div class="mtitle" id="cm-t">Novo Cliente</div><button class="mcls" onclick="cM('m-client')">✕</button></div>
+  <div class="mbody"><div class="fg">
+    <div class="fgrp s2"><label>NOME *</label><input type="text" id="cm-nm"></div>
+    <div class="fgrp"><label>CNPJ</label><input type="text" id="cm-cj"></div>
+    <div class="fgrp"><label>CPF</label><input type="text" id="cm-cp"></div>
+    <div class="fgrp"><label>TELEFONE</label><input type="text" id="cm-ph"></div>
+    <div class="fgrp"><label>E-MAIL</label><input type="text" id="cm-em"></div>
+    <div class="fgrp s2"><label>ENDEREÇO</label><input type="text" id="cm-ad"></div>
+    <div class="fgrp"><label>CIDADE</label><input type="text" id="cm-ci"></div>
+    <div class="fgrp"><label>ESTADO</label><input type="text" id="cm-st"></div>
+  </div></div>
+  <div class="mftr"><button class="btn bs" onclick="cM('m-client')">Cancelar</button><button class="btn bp" onclick="saveCli()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Store -->
+<div class="moverlay" id="m-store">
+  <div class="modal mlg"><div class="mhdr"><div class="mtitle" id="sm-t">Nova Loja</div><button class="mcls" onclick="cM('m-store')">✕</button></div>
+  <div class="mbody"><div class="fg">
+    <div class="fgrp s2"><label>CLIENTE *</label><select id="sm-cl"><option value="">Selecione</option></select></div>
+    <div class="fgrp s2"><label>NOME DA LOJA *</label><input type="text" id="sm-nm"></div>
+    <div class="fgrp"><label>CNPJ</label><input type="text" id="sm-cj"></div>
+    <div class="fgrp"><label>TELEFONE</label><input type="text" id="sm-ph"></div>
+    <div class="fgrp s2"><label>ENDEREÇO</label><input type="text" id="sm-ad"></div>
+    <div class="fgrp"><label>CIDADE</label><input type="text" id="sm-ci"></div>
+    <div class="fgrp"><label>ESTADO</label><input type="text" id="sm-st"></div>
+    <div style="grid-column:1/-1;height:1px;background:var(--bd)"></div>
+    <div class="fgrp s2"><label>GERENTE</label><input type="text" id="sm-mg"></div>
+    <div class="fgrp"><label>TEL. GERENTE</label><input type="text" id="sm-gp"></div>
+    <div class="fgrp"><label>EMAIL GERENTE</label><input type="text" id="sm-ge"></div>
+  </div></div>
+  <div class="mftr"><button class="btn bs" onclick="cM('m-store')">Cancelar</button><button class="btn bp" onclick="saveSt()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Equipment -->
+<div class="moverlay" id="m-equip">
+  <div class="modal mlg"><div class="mhdr"><div class="mtitle" id="em-t">Novo Equipamento</div><button class="mcls" onclick="cM('m-equip')">✕</button></div>
+  <div class="mbody"><div class="fg">
+    <div class="fgrp s2"><label>LOJA *</label><select id="em-st"><option value="">Selecione</option></select></div>
+    <div class="fgrp s2"><label>NOME *</label><input type="text" id="em-nm"></div>
+    <div class="fgrp"><label>TIPO</label><select id="em-tp"><option>Balança</option><option>Computador</option><option>PDV</option><option>Impressora</option><option>Monitor</option><option>Terminal</option><option>Nobreak</option><option>Outro</option></select></div>
+    <div class="fgrp"><label>MARCA</label><input type="text" id="em-br" placeholder="Prix, Toledo..."></div>
+    <div class="fgrp"><label>MODELO</label><input type="text" id="em-mo" placeholder="Prix 4..."></div>
+    <div class="fgrp"><label>NÚMERO DE SÉRIE</label><input type="text" id="em-sr"></div>
+    <div class="fgrp"><label>LACRE ATUAL</label><input type="text" id="em-la"></div>
+    <div class="fgrp"><label>LACRE ANTERIOR</label><input type="text" id="em-lp"></div>
+    <div class="fgrp"><label>ETIQUETA ATUAL</label><input type="text" id="em-ea"></div>
+    <div class="fgrp"><label>ETIQUETA ANTERIOR</label><input type="text" id="em-ep"></div>
+    <div class="fgrp"><label>CARGA MÁXIMA</label><input type="text" id="em-cm"></div>
+    <div class="fgrp"><label>PORTARIA</label><input type="text" id="em-po"></div>
+    <div class="fgrp s2"><label>MICT</label><input type="text" id="em-mi"></div>
+  </div></div>
+  <div class="mftr"><button class="btn bs" onclick="cM('m-equip')">Cancelar</button><button class="btn bp" onclick="saveEq()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Technician -->
+<div class="moverlay" id="m-tech">
+  <div class="modal"><div class="mhdr"><div class="mtitle" id="tm-t">Novo Técnico</div><button class="mcls" onclick="cM('m-tech')">✕</button></div>
+  <div class="mbody"><div class="fg">
+    <div class="fgrp s2"><label>NOME *</label><input type="text" id="tm-nm"></div>
+    <div class="fgrp"><label>TELEFONE</label><input type="text" id="tm-ph"></div>
+    <div class="fgrp"><label>E-MAIL</label><input type="text" id="tm-em"></div>
+    <div class="fgrp"><label>RG</label><input type="text" id="tm-rg"></div>
+    <div class="fgrp"><label>CPF</label><input type="text" id="tm-cp"></div>
+    <div class="fgrp s2"><label>ENDEREÇO</label><input type="text" id="tm-ad"></div>
+    <div class="fgrp"><label>CIDADE</label><input type="text" id="tm-ci"></div>
+    <div class="fgrp"><label>ESTADO</label><input type="text" id="tm-st"></div>
+  </div></div>
+  <div class="mftr"><button class="btn bs" onclick="cM('m-tech')">Cancelar</button><button class="btn bp" onclick="saveTech()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- User -->
+<div class="moverlay" id="m-user">
+  <div class="modal"><div class="mhdr"><div class="mtitle" id="um-t">Novo Usuário</div><button class="mcls" onclick="cM('m-user')">✕</button></div>
+  <div class="mbody"><div class="fg">
+    <div class="fgrp s2"><label>NOME COMPLETO *</label><input type="text" id="um-nm"></div>
+    <div class="fgrp"><label>USUÁRIO (login) *</label><input type="text" id="um-us" style="text-transform:lowercase"></div>
+    <div class="fgrp"><label>E-MAIL</label><input type="text" id="um-em"></div>
+    <div class="fgrp"><label>PERFIL *</label>
+      <select id="um-rl" onchange="onRC()">
+        <option value="technician">Técnico</option>
+        <option value="manager">Gerente de Loja</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div class="fgrp" id="um-tg"><label>TÉCNICO VINCULADO</label><select id="um-tv"><option value="">Nenhum</option></select></div>
+    <div class="fgrp" id="um-sg" style="display:none"><label>LOJA VINCULADA</label><select id="um-sv"><option value="">Nenhuma</option></select></div>
+    <div class="fgrp s2"><label>SENHA TEMPORÁRIA *</label><input type="password" id="um-pw" placeholder="Usuário irá trocar no 1º acesso"></div>
+  </div>
+  <div class="alert aw" style="margin-top:8px;font-size:11px">⚠️ O usuário precisará criar sua própria senha no primeiro acesso.</div>
+  </div>
+  <div class="mftr"><button class="btn bs" onclick="cM('m-user')">Cancelar</button><button class="btn bp" onclick="saveUser()">Criar Usuário</button></div>
+  </div>
+</div>
+
+<!-- Parts Request -->
+<div class="moverlay" id="m-parts">
+  <div class="modal mlg"><div class="mhdr"><div class="mtitle">Nova Solicitação de Peças</div><button class="mcls" onclick="cM('m-parts')">✕</button></div>
+  <div class="mbody">
+    <div class="fg">
+      <div class="fgrp"><label>LOJA</label><select id="pm-st" onchange="onPSC()"><option value="">Selecione</option></select></div>
+      <div class="fgrp"><label>EQUIPAMENTO</label><select id="pm-eq"><option value="">Selecione a loja</option></select></div>
+      <div class="fgrp"><label>OS RELACIONADA (opcional)</label><select id="pm-os"><option value="">Nenhuma</option></select></div>
+      <div class="fgrp"><label>URGÊNCIA</label>
+        <select id="pm-urg"><option value="Normal">🔵 Normal</option><option value="Urgente">🟡 Urgente</option><option value="Crítico">🔴 Crítico</option></select>
+      </div>
+      <div class="fgrp s2"><label>OBSERVAÇÕES</label><textarea id="pm-nt" rows="2"></textarea></div>
+    </div>
+    <div style="margin:12px 0 7px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px">🔩 Itens</div>
+      <button class="btn bs bsm" type="button" onclick="addPI()">+ Adicionar Item</button>
+    </div>
+    <div id="pi-list"></div>
+  </div>
+  <div class="mftr">
+    <button class="btn bs" onclick="cM('m-parts')">Cancelar</button>
+    <button class="btn bp" onclick="savePR(false)">Salvar</button>
+    <button class="btn bg" onclick="savePR(true)">Salvar e Enviar Email 📧</button>
+  </div>
+  </div>
+</div>
+
+<!-- OS View -->
+<div class="moverlay" id="m-osview">
+  <div class="modal mxl"><div class="mhdr"><div class="mtitle" id="osv-t">OS</div><button class="mcls" onclick="cM('m-osview')">✕</button></div>
+  <div class="mbody" id="osv-body"></div>
+  <div class="mftr"><button class="btn bs" onclick="cM('m-osview')">Fechar</button><button class="btn bb" onclick="prtOS()">🖨️ Imprimir</button></div>
+  </div>
+</div>
+<script>
+// ── STATE ─────────────────────────────────────────────────
+const ST={
+  token:localStorage.getItem('tk')||'',
+  user:JSON.parse(localStorage.getItem('tu')||'null'),
+  clients:[],stores:[],equip:[],techs:[],co:{},
+  editC:null,editS:null,editE:null,editT:null,editO:null,editU:null,
+  signOrds:[],partsItems:[],
+};
+
+// ── API ───────────────────────────────────────────────────
+async function api(url,method='GET',data=null){
+  const o={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+ST.token}};
+  if(data) o.body=JSON.stringify(data);
+  try{
+    const r=await fetch(url,o);
+    const j=await r.json().catch(()=>null);
+    if(r.status===401){doLogout();return null;}
+    return j;
+  }catch(e){console.error(e);return null;}
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+async function doLogin(){
+  const u=document.getElementById('l-user').value.trim();
+  const p=document.getElementById('l-pass').value;
+  const e=document.getElementById('lerr');
+  e.style.display='none';
+  if(!u||!p){showLE('Preencha usuário e senha.');return;}
+  const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+  const d=await r.json();
+  if(!r.ok){showLE(d.error||'Erro ao entrar.');return;}
+  if(d.first_login){
+    ST._pu=u;
+    document.getElementById('ls1').style.display='none';
+    document.getElementById('ls2').style.display='block';
+    return;
+  }
+  loginOK(d.token,d.user);
+}
+function showLE(m){const e=document.getElementById('lerr');e.textContent=m;e.style.display='flex';}
+
+async function doSetPw(){
+  const p1=document.getElementById('np1').value;
+  const p2=document.getElementById('np2').value;
+  const e=document.getElementById('pwerr');
+  e.style.display='none';
+  if(p1.length<6){e.textContent='Mínimo 6 caracteres.';e.style.display='flex';return;}
+  if(p1!==p2){e.textContent='Senhas não coincidem.';e.style.display='flex';return;}
+  const r=await fetch('/api/auth/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:ST._pu,password:p1})});
+  const d=await r.json();
+  if(!r.ok){e.textContent=d.error||'Erro.';e.style.display='flex';return;}
+  loginOK(d.token,d.user);
+}
+
+function loginOK(token,user){
+  ST.token=token;ST.user=user;
+  localStorage.setItem('tk',token);localStorage.setItem('tu',JSON.stringify(user));
+  document.getElementById('login-wrap').style.display='none';
+  document.getElementById('app').style.display='flex';
+  applyRole(user);
+  init();
+}
+
+function doLogout(){
+  ST.token='';ST.user=null;
+  localStorage.removeItem('tk');localStorage.removeItem('tu');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-wrap').style.display='flex';
+  document.getElementById('ls1').style.display='block';
+  document.getElementById('ls2').style.display='none';
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('lerr').style.display='none';
+}
+
+function applyRole(u){
+  const rn={'admin':'Administrador','technician':'Técnico','manager':'Gerente de Loja'}[u.role]||u.role;
+  document.getElementById('uav').textContent=u.name[0].toUpperCase();
+  document.getElementById('uname').textContent=u.name;
+  document.getElementById('urole').textContent=rn;
+  const isAdmin   = u.role === 'admin';
+  const isMgr     = u.role === 'manager';
+  // Oculta TODO elemento com r-admin para quem não é admin
+  document.querySelectorAll('.r-admin').forEach(el=>{
+    if(isAdmin) el.classList.remove('hide');
+    else        el.classList.add('hide');
+  });
+  // Oculta nova OS e solicitar peças para gerente
+  document.querySelectorAll('.r-tech').forEach(el=>{
+    if(isMgr) el.classList.add('hide');
+    else      el.classList.remove('hide');
+  });
+  // Empresa: modo leitura para não-admin
+  applyCompanyMode(u.role);
+}
+
+function applyCompanyMode(role){
+  const isAdmin = role === 'admin';
+  // Campos de dados da empresa
+  document.querySelectorAll('.co-field').forEach(el=>{
+    el.readOnly = !isAdmin;
+    el.style.opacity = isAdmin ? '1' : '0.7';
+    el.style.cursor  = isAdmin ? '' : 'default';
+  });
+  // Banner aviso
+  const banner = document.getElementById('co-readonly-banner');
+  if(banner) banner.style.display = isAdmin ? 'none' : 'flex';
+  // Botão salvar
+  const saveBtn = document.getElementById('co-save-btn');
+  if(saveBtn) saveBtn.style.display = isAdmin ? 'block' : 'none';
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  if(ST.token&&ST.user){
+    document.getElementById('login-wrap').style.display='none';
+    document.getElementById('app').style.display='flex';
+    applyRole(ST.user);
+    init();
+  }
+  // Sidebar toggle
+  document.getElementById('mbtn').onclick=()=>{
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sbov').classList.toggle('open');
+  };
+  document.getElementById('sbov').onclick=()=>{
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sbov').classList.remove('open');
+  };
+  document.querySelectorAll('.ni').forEach(n=>n.addEventListener('click',()=>{
+    if(n.dataset.view) showView(n.dataset.view);
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sbov').classList.remove('open');
+  }));
+  setupSig();
+});
+
+async function init(){
+  await loadAll();
+  loadDash();
+  setDates();
+  updFab();
+}
+
+async function loadAll(){
+  const [c,s,e,t,co]=await Promise.all([
+    api('/api/clients'),api('/api/stores'),api('/api/equipment'),
+    api('/api/technicians'),api('/api/company')
+  ]);
+  ST.clients=c||[];ST.stores=s||[];ST.equip=e||[];ST.techs=t||[];ST.co=co||{};
+  popSels();loadCoDom();
+}
+
+// ── NAVIGATION ────────────────────────────────────────────
+const VTITLES={dashboard:'Dashboard',orders:'Ordens de Serviço','new-order':'Nova OS',
+  sign:'Assinar OSs',parts:'Solicitar Peças',clients:'Clientes',stores:'Lojas',
+  equipment:'Equipamentos',technicians:'Técnicos',users:'Usuários',company:'Minha Empresa'};
+
+function showView(n){
+  document.querySelectorAll('.vw').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  document.getElementById('vw-'+n)?.classList.add('active');
+  document.querySelector(`[data-view="${n}"]`)?.classList.add('active');
+  document.getElementById('ttitle').textContent=VTITLES[n]||n;
+  if(n==='orders') loadOrders();
+  if(n==='clients') renderClients();
+  if(n==='stores') renderStores();
+  if(n==='equipment') renderEquip();
+  if(n==='technicians') renderTechs();
+  if(n==='users') loadUsers();
+  if(n==='dashboard') loadDash();
+  if(n==='sign'){rstSign();popSignSels();}
+  if(n==='parts') loadParts();
+  if(n==='new-order'&&!ST.editO) rstOSForm();
+  if(n==='company' && ST.user) applyCompanyMode(ST.user.role);
+}
+
+// ── SELECTS ───────────────────────────────────────────────
+function fsel(id,items,mapper,hasAll=false){
+  const s=document.getElementById(id);if(!s)return;
+  const first=s.options[0];s.innerHTML='';
+  if(hasAll||first?.value==='') s.add(new Option(first?.text||'Todos',''));
+  items.forEach(i=>{const m=mapper(i);s.add(new Option(m.t,m.v));});
+}
+
+function popSels(){
+  fsel('os-tech',ST.techs,t=>({v:t.id,t:t.name}));
+  fsel('f-tech',ST.techs,t=>({v:t.id,t:t.name}),true);
+  fsel('os-store',ST.stores,s=>({v:s.id,t:s.name+(s.client_name?` (${s.client_name})`:'') }));
+  fsel('e-sf',ST.stores,s=>({v:s.id,t:s.name}),true);
+  fsel('sm-cl',ST.clients,c=>({v:c.id,t:c.name}));
+  fsel('em-st',ST.stores,s=>({v:s.id,t:s.name}));
+  fsel('um-tv',ST.techs,t=>({v:t.id,t:t.name}),true);
+  fsel('um-sv',ST.stores,s=>({v:s.id,t:s.name}),true);
+  fsel('pm-st',ST.stores,s=>({v:s.id,t:s.name}));
+  // Auto-select tech if user is technician
+  if(ST.user?.role==='technician'&&ST.user?.technician_id){
+    const el=document.getElementById('os-tech');
+    if(el){el.value=ST.user.technician_id;el.disabled=true;}
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function toast(msg,type='info'){
+  const el=document.getElementById('toast');
+  const c={info:getComputedStyle(document.documentElement).getPropertyValue('--ac2'),
+           success:getComputedStyle(document.documentElement).getPropertyValue('--ac3'),
+           error:'#f85149',warn:getComputedStyle(document.documentElement).getPropertyValue('--wn')};
+  el.textContent=msg;el.style.color=(c[type]||c.info).trim();
+  el.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>el.style.transform='translateX(-50%) translateY(80px)',2800);
+}
+
+// ── DATES ─────────────────────────────────────────────────
+function setDates(){
+  const td=new Date().toISOString().split('T')[0];
+  const tn=new Date().toTimeString().slice(0,5);
+  const f=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v;};
+  f('os-date',td);f('os-cd',td);f('os-ti',tn);
+  const sd=document.getElementById('sg-date');if(sd)sd.value=td;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+async function loadDash(){
+  const st=await api('/api/dashboard');if(!st)return;
+  const items=[
+    {l:'OSs Hoje',v:st.today_orders,c:'ac'},{l:'Assinadas Hoje',v:st.signed_today,c:'gr'},
+    {l:'OSs em Aberto',v:st.open_orders,c:'wn'},{l:'Total OSs',v:st.total_orders,c:'bl'},
+    {l:'Peças Pendentes',v:st.pending_parts,c:'pu'},
+  ];
+  if(ST.user?.role==='admin'){
+    items.push({l:'Clientes',v:st.total_clients,c:'bl'});
+    items.push({l:'Técnicos',v:st.total_techs,c:'bl'});
+    items.push({l:'Equipamentos',v:st.total_equipment,c:'bl'});
+  }
+  document.getElementById('sgrid').innerHTML=items.map(i=>
+    `<div class="scard ${i.c}"><div class="sv">${i.v}</div><div class="sl">${i.l}</div></div>`
+  ).join('');
+  const ords=await api('/api/orders');
+  document.getElementById('recent-list').innerHTML=(ords||[]).slice(0,5).map(o=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd)">
+    <div><div style="font-weight:600;font-size:12px">${o.os_number} — ${o.equipment_name}</div>
+    <div style="font-size:11px;color:var(--tx2)">${o.store_name}</div></div>${sBadge(o.status)}</div>`
+  ).join('')||'<div style="padding:14px;text-align:center;color:var(--tx2);font-size:12px">Nenhuma OS ainda</div>';
+  const un=await api('/api/orders/today-unsigned');
+  const ul=document.getElementById('unsigned-list');
+  if(!(un||[]).length){
+    ul.innerHTML='<div style="padding:14px;text-align:center;color:var(--ac3);font-size:12px">✅ Todas assinadas hoje!</div>';
+  }else{
+    ul.innerHTML=un.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd)">
+      <div><div style="font-weight:600;font-size:12px">${o.os_number} — ${o.equipment_name}</div>
+      <div style="font-size:11px;color:var(--tx2)">${o.store_name}</div></div>
+      <span style="font-size:11px;color:var(--wn)">⏳</span></div>`).join('');
+    updFab(un.length);
+  }
+}
+
+// ── ORDERS ────────────────────────────────────────────────
+async function loadOrders(){
+  const dt=document.getElementById('f-date')?.value||'';
+  const st=document.getElementById('f-status')?.value||'';
+  const tc=document.getElementById('f-tech')?.value||'';
+  let url='/api/orders?';
+  if(dt)url+=`date=${dt}&`;if(st)url+=`status=${encodeURIComponent(st)}&`;if(tc)url+=`technician_id=${tc}&`;
+  const ords=await api(url);
+  const tb=document.getElementById('orders-tb');
+  if(!(ords||[]).length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:22px;color:var(--tx2)">Nenhuma OS encontrada</td></tr>';return;}
+  tb.innerHTML=ords.map(o=>`<tr>
+    <td><span style="font-family:\'Syne\',sans-serif;font-weight:700;color:var(--ac2)">${o.os_number}</span></td>
+    <td>${fd(o.service_date)}</td><td>${o.store_name||'—'}</td>
+    <td>${o.equipment_name||'—'}</td><td>${o.technician_name||'—'}</td>
+    <td>${sBadge(o.status)}</td>
+    <td><div class="ac-cell">
+      <button class="btn bs bsm bic" onclick="viewOS(${o.id})" title="Ver">👁</button>
+      <button class="btn bs bsm bic" onclick="editOS(${o.id})" title="Editar">✏️</button>
+      <button class="btn bd2 bsm bic" onclick="delOS(${o.id})" title="Excluir">🗑</button>
+    </div></td></tr>`).join('');
+}
+
+function sBadge(s){
+  const m={'Aberta':'bor','Em andamento':'bbl','Concluída':'bwn','Assinada':'bgr'};
+  return`<span class="bdg ${m[s]||'bgy'}">${s||'Aberta'}</span>`;
+}
+function fd(d){if(!d)return'—';const p=d.split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d;}
+
+// ── OS FORM ───────────────────────────────────────────────
+function rstOSForm(){
+  ST.editO=null;
+  document.getElementById('os-ftitle').textContent='Nova Ordem de Serviço';
+  document.getElementById('os-sbtn').textContent='✓ Salvar OS';
+  document.getElementById('os-form').reset();
+  setDates();calcT();
+  document.getElementById('store-info').style.display='none';
+  document.getElementById('eq-info').style.display='none';
+  if(ST.user?.role==='technician'&&ST.user?.technician_id){
+    const el=document.getElementById('os-tech');
+    if(el){el.value=ST.user.technician_id;el.disabled=true;}
+  }
+}
+
+function onTC(){}
+
+function onSC(){
+  const sid=document.getElementById('os-store').value;
+  const store=ST.stores.find(s=>s.id==sid);
+  const card=document.getElementById('store-info');
+  if(!store){card.style.display='none';return;}
+  card.style.display='block';
+  const f=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
+  f('si-cli',store.client_name);f('si-loja',store.name);f('si-cnpj',store.cnpj);
+  f('si-tel',store.phone);
+  f('si-end',[store.address,store.city,store.state].filter(Boolean).join(', '));
+  f('si-ger',store.manager_name);f('si-gtel',store.manager_phone);
+  const eqs=ST.equip.filter(e=>e.store_id==sid);
+  fsel('os-equip',eqs,e=>({v:e.id,t:`${e.name} — ${e.brand||''} ${e.model||''}`.trim()}));
+  document.getElementById('eq-info').style.display='none';
+}
+
+function onEC(){
+  const eid=document.getElementById('os-equip').value;
+  const eq=ST.equip.find(e=>e.id==eid);
+  const g=document.getElementById('eq-info');
+  if(!eq){g.style.display='none';return;}
+  g.style.display='block';
+  const f=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
+  f('eq-tp',eq.equipment_type);f('eq-br',eq.brand);f('eq-mo',eq.model);
+  f('eq-sr',eq.serial_number);f('eq-la',eq.current_seal);f('eq-et',eq.current_label);
+  f('eq-cm',eq.max_load);f('eq-po',eq.portaria);f('eq-mi',eq.mict);
+}
+
+function sels(el){
+  document.querySelectorAll('.schip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function calcT(){
+  const g=(id)=>parseFloat(document.getElementById(id)?.value)||0;
+  const t=g('os-pv')+g('os-sv2')+g('os-ex')+g('os-dc');
+  const el=document.getElementById('os-tot');
+  if(el)el.value='R$ '+t.toFixed(2).replace('.',',');
+}
+
+async function submitOS(e){
+  e.preventDefault();
+  const fs=document.querySelector('input[name=fs]:checked');
+  const g=(id)=>document.getElementById(id)?.value||'';
+  const data={
+    technician_id:parseInt(g('os-tech')),store_id:parseInt(g('os-store')),
+    equipment_id:parseInt(g('os-equip')),
+    call_date:g('os-cd'),call_time:g('os-ct'),call_type:g('os-ctype'),
+    service_date:g('os-date'),start_time:g('os-ti'),end_time:g('os-tf'),travel_time:g('os-tv'),
+    symptom:g('os-sy'),services_description:g('os-sv'),actions:g('os-ac'),
+    final_status:fs?.value||'Atendido',status:'Aberta',
+    parts_value:parseFloat(g('os-pv'))||0,services_value:parseFloat(g('os-sv2'))||0,
+    expenses_value:parseFloat(g('os-ex'))||0,discount:parseFloat(g('os-dc'))||0,
+    total_value:parseFloat((g('os-tot')||'0').replace('R$ ','').replace(',','.'))||0,
+    notes:g('os-nt'),
+  };
+  if(!data.technician_id||!data.store_id||!data.equipment_id){toast('Preencha técnico, loja e equipamento','error');return;}
+  let r;
+  if(ST.editO) r=await api(`/api/orders/${ST.editO}`,'PUT',data);
+  else r=await api('/api/orders','POST',data);
+  if(r?.error){toast('Erro: '+r.error,'error');return;}
+  toast(ST.editO?'OS atualizada!':'OS #'+r?.os_number+' criada!','success');
+  ST.editO=null;await loadAll();updFab();showView('orders');
+}
+
+async function editOS(id){
+  const o=await api(`/api/orders/${id}`);if(!o)return;
+  ST.editO=id;showView('new-order');
+  document.getElementById('os-ftitle').textContent=`Editando OS #${o.os_number}`;
+  document.getElementById('os-sbtn').textContent='✓ Atualizar OS';
+  const f=(id,v)=>{const e=document.getElementById(id);if(e&&!e.disabled)e.value=v||'';};
+  f('os-tech',o.technician_id);f('os-store',o.store_id);onSC();
+  setTimeout(()=>{
+    f('os-equip',o.equipment_id);onEC();
+    f('os-cd',o.call_date);f('os-ct',o.call_time);f('os-ctype',o.call_type);
+    f('os-date',o.service_date);f('os-ti',o.start_time);f('os-tf',o.end_time);
+    f('os-tv',o.travel_time);f('os-sy',o.symptom);f('os-sv',o.services_description);
+    f('os-ac',o.actions);f('os-pv',o.parts_value);f('os-sv2',o.services_value);
+    f('os-ex',o.expenses_value);f('os-dc',o.discount);f('os-nt',o.notes);calcT();
+    if(o.final_status) document.querySelectorAll('.schip').forEach(c=>{
+      const inp=c.querySelector('input');
+      if(inp?.value===o.final_status){document.querySelectorAll('.schip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');inp.checked=true;}
+    });
+  },200);
+}
+
+async function delOS(id){
+  if(!confirm('Excluir esta OS?'))return;
+  await api(`/api/orders/${id}`,'DELETE');
+  toast('OS excluída','info');loadOrders();updFab();
+}
+
+async function viewOS(id){
+  const o=await api(`/api/orders/${id}`);if(!o)return;
+  document.getElementById('osv-t').textContent=`OS #${o.os_number}`;
+  document.getElementById('osv-body').innerHTML=osHtml(o,ST.co);
+  oM('m-osview');
+}
+
+function prtOS(){
+  const c=document.getElementById('osv-body').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>OS</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 6px;font-size:11px}</style></head><body>${c}</body></html>`);
+  w.print();
+}
+
+function osHtml(o,co){
+  return`<div style="font-family:Arial,sans-serif;font-size:11px;background:white;padding:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px">
+    <div><b style="font-size:13px">${co.name||'EMPRESA'}</b><br>${co.address||''} — ${co.city||''}/${co.state||''}<br>Tel: ${co.phone||''} | CNPJ: ${co.cnpj||''}</div>
+    <div style="text-align:right"><span style="font-size:10px;color:#888">MANIFESTO DE SERVIÇO</span><br>
+    <b style="font-size:24px;color:#c00">${o.os_number}</b><br><b style="font-size:10px">1ª VIA — DESTINO</b></div>
+  </div>
+  <table style="margin-bottom:5px"><tr><td><b>Cliente:</b> ${o.client_name||''}</td><td><b>Loja:</b> ${o.store_name||''}</td><td><b>CNPJ:</b> ${o.store_cnpj||''}</td></tr>
+  <tr><td colspan="2"><b>End.:</b> ${o.store_address||''}, ${o.store_city||''}</td><td><b>Tel:</b> ${o.store_phone||''}</td></tr></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
+  <table><tr style="background:#eee"><th colspan="3">CHAMADO</th></tr><tr><th>DATA</th><th>HORA</th><th>TIPO</th></tr>
+  <tr><td>${fd(o.call_date)}</td><td>${o.call_time||''}</td><td>${o.call_type||''}</td></tr></table>
+  <table><tr style="background:#eee"><th colspan="4">ATENDIMENTO</th></tr><tr><th>DATA</th><th>INÍCIO</th><th>FIM</th><th>VIAGEM</th></tr>
+  <tr><td>${fd(o.service_date)}</td><td>${o.start_time||''}</td><td>${o.end_time||''}</td><td>${o.travel_time||''}</td></tr></table>
+  </div>
+  <table style="margin-bottom:4px"><tr style="background:#eee"><th colspan="4">EQUIPAMENTO</th></tr>
+  <tr><th>NOME</th><th>MARCA/MODELO</th><th>SÉRIE</th><th>TIPO</th></tr>
+  <tr><td>${o.equipment_name||''}</td><td>${o.equipment_brand||''} ${o.equipment_model||''}</td><td>${o.equipment_serial||''}</td><td>${o.equipment_type||''}</td></tr>
+  <tr><td><b>Lacre:</b> ${o.equipment_seal||''}</td><td><b>Etiq.:</b> ${o.equipment_label||''}</td><td><b>C.Máx:</b> ${o.equipment_max_load||''}</td><td><b>Portaria:</b> ${o.equipment_portaria||''}</td></tr></table>
+  <div style="background:#eee;padding:2px 5px;font-weight:700;margin-bottom:3px">SERVIÇOS</div>
+  <table style="margin-bottom:4px">
+  <tr><td><b>Sintoma:</b> ${o.symptom||''}</td></tr>
+  <tr><td style="min-height:45px"><b>Serviços:</b> ${o.services_description||''}</td></tr>
+  <tr><td><b>Ações:</b> ${o.actions||''}</td></tr></table>
+  <table style="margin-bottom:4px"><tr><td><b>Status:</b> ${o.final_status||''}</td>
+  <td><b>Peças:</b> R$${(o.parts_value||0).toFixed(2)}</td><td><b>Serv.:</b> R$${(o.services_value||0).toFixed(2)}</td>
+  <td><b>TOTAL:</b> R$${(o.total_value||0).toFixed(2)}</td></tr></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">
+  <table><tr style="background:#eee"><th colspan="2">TÉCNICO</th></tr>
+  <tr><td><b>Nome:</b> ${o.technician_name||''}</td><td><b>RG:</b> ${o.technician_rg||''}</td></tr>
+  <tr><td colspan="2" style="height:42px">Assinatura:</td></tr></table>
+  <table><tr style="background:#eee"><th>RESPONSÁVEL</th></tr>
+  <tr><td><b>Nome:</b> ${o.signer_name||''} &nbsp;<b>Cargo:</b> ${o.signer_role||''}</td></tr>
+  <tr><td style="height:42px;text-align:center">${o.client_signature?`<img src="${o.client_signature}" style="max-height:40px">`:''}</td></tr></table>
+  </div></div>`;
+}
+
+// ── SIGN FLOW ─────────────────────────────────────────────
+function rstSign(){showSS(1);ST.signOrds=[];clrSig();const f=(id)=>{const e=document.getElementById(id);if(e)e.value='';};f('sg-name');f('sg-role');setDates();}
+function showSS(n){document.querySelectorAll('.sstep').forEach((s,i)=>s.classList.toggle('active',i===n-1));}
+
+function popSignSels(){
+  fsel('sg-tech',ST.techs,t=>({v:t.id,t:t.name}),true);
+  // Auto-select tech if user is technician
+  if(ST.user?.role==='technician'&&ST.user?.technician_id){
+    const el=document.getElementById('sg-tech');
+    if(el)el.value=ST.user.technician_id;
+  }
+}
+
+async function loadSignOrders(){
+  const tid=document.getElementById('sg-tech').value;
+  const dt=document.getElementById('sg-date').value;
+  // ✅ FIX: usa pending-sign (status != 'Assinada'), sem filtro de status rígido
+  let url='/api/orders/pending-sign?';
+  if(tid)url+=`technician_id=${tid}&`;
+  if(dt)url+=`date=${dt}&`;
+  const ords=await api(url);
+  ST.signOrds=ords||[];
+  const list=document.getElementById('sg-list');
+  if(!ST.signOrds.length){
+    list.innerHTML='<div class="alert aw">⚠️ Nenhuma OS pendente de assinatura para os filtros selecionados.</div>';
+    showSS(2);return;
+  }
+  list.innerHTML=ST.signOrds.map(o=>`<div class="ossc">
+    <div class="osnum">${o.os_number}</div>
+    <div style="flex:1">
+      <div style="font-weight:600;font-size:12px">${o.equipment_name} — ${o.equipment_brand||''} ${o.equipment_model||''}</div>
+      <div style="font-size:11px;color:var(--tx2)">${o.store_name} | ${o.technician_name} | ${fd(o.service_date)}</div>
+    </div>${sBadge(o.status)}</div>`).join('');
+  showSS(2);
+}
+
+function goToSig(){
+  if(!ST.signOrds.length){toast('Nenhuma OS para assinar','warn');return;}
+  const first=ST.signOrds[0];
+  const store=ST.stores.find(s=>s.id==first.store_id);
+  if(store?.manager_name){
+    document.getElementById('sg-name').value=store.manager_name;
+    document.getElementById('sg-role').value='Gerente';
+  }
+  showSS(3);setTimeout(rszSig,100);
+}
+
+function chkMgr(){
+  const name=document.getElementById('sg-name').value.trim().toLowerCase();
+  if(ST.signOrds.length){
+    const store=ST.stores.find(s=>s.id==ST.signOrds[0].store_id);
+    if(store?.manager_name&&store.manager_name.toLowerCase()===name)
+      document.getElementById('sg-role').value='Gerente';
+  }
+}
+
+async function applySigs(){
+  const name=document.getElementById('sg-name').value.trim();
+  const role=document.getElementById('sg-role').value.trim();
+  if(!name){toast('Informe o nome do responsável','error');return;}
+  if(sigEmpty()){toast('Por favor realize a assinatura','error');return;}
+  const sig=document.getElementById('sigcv').toDataURL('image/png');
+  const ids=ST.signOrds.map(o=>o.id);
+  const r=await api('/api/orders/batch-sign','POST',{order_ids:ids,signer_name:name,signer_role:role,signature:sig});
+  if(r?.ok){
+    document.getElementById('sg-succ').textContent=`${r.signed} OS(s) assinadas por ${name} (${role})`;
+    showSS(4);updFab();toast(`${r.signed} OSs assinadas!`,'success');
+  }
+}
+
+// ── SIGNATURE PAD ─────────────────────────────────────────
+let sdraw=false,sctx,scv;
+function setupSig(){
+  scv=document.getElementById('sigcv');sctx=scv.getContext('2d');rszSig();
+  const pos=e=>{const r=scv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(scv.width/r.width),y:(t.clientY-r.top)*(scv.height/r.height)};};
+  const start=e=>{e.preventDefault();sdraw=true;const p=pos(e);sctx.beginPath();sctx.moveTo(p.x,p.y);document.getElementById('sigph').style.display='none';};
+  const draw=e=>{if(!sdraw)return;e.preventDefault();const p=pos(e);sctx.lineWidth=2.5;sctx.lineCap='round';sctx.lineJoin='round';sctx.strokeStyle='#1a1a2e';sctx.lineTo(p.x,p.y);sctx.stroke();};
+  const end=()=>sdraw=false;
+  scv.addEventListener('mousedown',start);scv.addEventListener('mousemove',draw);scv.addEventListener('mouseup',end);
+  scv.addEventListener('touchstart',start,{passive:false});scv.addEventListener('touchmove',draw,{passive:false});scv.addEventListener('touchend',end);
+}
+function rszSig(){if(!scv)return;const r=scv.parentElement.getBoundingClientRect();scv.width=r.width;scv.height=185;}
+function clrSig(){if(!sctx)return;sctx.clearRect(0,0,scv.width,scv.height);const p=document.getElementById('sigph');if(p)p.style.display='block';}
+function sigEmpty(){if(!sctx)return true;const d=sctx.getImageData(0,0,scv.width,scv.height).data;return!d.some(x=>x!==0);}
+
+// ── PARTS REQUESTS ────────────────────────────────────────
+async function loadParts(){
+  const st=document.getElementById('pf-st')?.value||'';
+  let url='/api/parts-requests?';if(st)url+=`status=${encodeURIComponent(st)}&`;
+  const reqs=await api(url)||[];
+  const uc={'Normal':'bbl','Urgente':'bwn','Crítico':'brd'};
+  const sc={'Pendente':'bwn','Aprovada':'bgr','Reprovada':'brd','Entregue':'bgy'};
+  const tb=document.getElementById('parts-tb');
+  tb.innerHTML=reqs.length?reqs.map(r=>`<tr>
+    <td><span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--ac2)">${r.request_number}</span></td>
+    <td>${fd(r.created_at?.split('T')[0])}</td><td>${r.technician_name}</td>
+    <td>${r.store_name||'—'}</td><td>${r.equipment_name||'—'}</td>
+    <td><span class="bdg ${uc[r.urgency]||'bgy'}">${r.urgency}</span></td>
+    <td><span class="bdg ${sc[r.status]||'bgy'}">${r.status}</span></td>
+    <td>${r.email_sent?'<span style="color:var(--ac3);font-size:11px">✅</span>':'<span style="color:var(--tx3);font-size:11px">—</span>'}</td>
+    <td><div class="ac-cell">
+      <button class="btn bg bsm" onclick="sendPE(${r.id})" title="Enviar Email">📧</button>
+      <button class="btn bd2 bsm bic" onclick="delPR(${r.id})">🗑</button>
+    </div></td></tr>`).join('')
+  :'<tr><td colspan="9" style="text-align:center;padding:22px;color:var(--tx2)">Nenhuma solicitação</td></tr>';
+}
+
+function openPM(){
+  ST.partsItems=[{code:'',description:'',quantity:1,unit:'un',notes:''}];
+  fsel('pm-st',ST.stores,s=>({v:s.id,t:s.name}));
+  document.getElementById('pm-nt').value='';
+  document.getElementById('pm-urg').value='Normal';
+  document.getElementById('pm-os').innerHTML='<option value="">Nenhuma</option>';
+  renderPI();oM('m-parts');
+}
+
+function onPSC(){
+  const sid=document.getElementById('pm-st').value;
+  const eqs=ST.equip.filter(e=>e.store_id==sid);
+  fsel('pm-eq',eqs,e=>({v:e.id,t:`${e.name}${e.brand?' — '+e.brand:''} ${e.model||''}`.trim()}));
+  // Load store OSs
+  const osEl=document.getElementById('pm-os');
+  osEl.innerHTML='<option value="">Nenhuma</option>';
+  // We don't have a stored list of orders, skip for now
+}
+
+function addPI(){ST.partsItems.push({code:'',description:'',quantity:1,unit:'un',notes:''});renderPI();}
+function remPI(i){ST.partsItems.splice(i,1);if(!ST.partsItems.length)ST.partsItems.push({code:'',description:'',quantity:1,unit:'un',notes:''});renderPI();}
+
+function renderPI(){
+  document.getElementById('pi-list').innerHTML=ST.partsItems.map((item,i)=>`
+    <div class="pitm"><div class="pitgrid">
+      <div class="fgrp"><label>CÓDIGO</label><input type="text" value="${item.code||''}" oninput="ST.partsItems[${i}].code=this.value" placeholder="COD-001"></div>
+      <div class="fgrp"><label>DESCRIÇÃO *</label><input type="text" value="${item.description||''}" oninput="ST.partsItems[${i}].description=this.value" placeholder="Nome da peça"></div>
+      <div class="fgrp"><label>QTD</label><input type="number" value="${item.quantity||1}" min="0.1" step="0.1" oninput="ST.partsItems[${i}].quantity=parseFloat(this.value)||1"></div>
+      <div class="fgrp"><label>UN.</label>
+        <select oninput="ST.partsItems[${i}].unit=this.value">
+          ${['un','kg','m','L','cx','pç'].map(u=>`<option ${item.unit===u?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fgrp"><label>OBSERVAÇÃO</label><input type="text" value="${item.notes||''}" oninput="ST.partsItems[${i}].notes=this.value"></div>
+      <button type="button" class="btn bd2 bic" style="align-self:flex-end" onclick="remPI(${i})">✕</button>
+    </div></div>`).join('');
+}
+
+async function savePR(sendEmail=false){
+  // Get technician_id from user
+  let tid=null;
+  if(ST.user?.role==='technician'&&ST.user?.technician_id) tid=ST.user.technician_id;
+  else if(ST.techs.length) tid=ST.techs[0].id;
+  const valid=ST.partsItems.filter(i=>i.description.trim());
+  if(!valid.length){toast('Adicione ao menos um item com descrição','error');return;}
+  const data={
+    technician_id:tid,
+    store_id:parseInt(document.getElementById('pm-st').value)||null,
+    equipment_id:parseInt(document.getElementById('pm-eq').value)||null,
+    os_id:parseInt(document.getElementById('pm-os').value)||null,
+    urgency:document.getElementById('pm-urg').value,
+    notes:document.getElementById('pm-nt').value,
+    items:valid,
+  };
+  const r=await api('/api/parts-requests','POST',data);
+  if(!r||r.error){toast('Erro: '+(r?.error||'falha'),'error');return;}
+  toast('Solicitação criada!','success');
+  if(sendEmail){
+    const er=await api(`/api/parts-requests/${r.id}/send-email`,'POST',{});
+    if(er?.ok) toast('Email enviado!','success');
+    else toast(er?.message||'Falha no email','warn');
+  }
+  cM('m-parts');loadParts();
+}
+
+async function sendPE(id){
+  toast('Enviando email...','info');
+  const r=await api(`/api/parts-requests/${id}/send-email`,'POST',{});
+  if(r?.ok) toast('Email enviado!','success');
+  else toast(r?.message||'Falha ao enviar','error');
+  loadParts();
+}
+
+async function delPR(id){
+  if(!confirm('Excluir solicitação?'))return;
+  await api(`/api/parts-requests/${id}`,'DELETE');
+  toast('Excluído','info');loadParts();
+}
+
+// ── CLIENTS ───────────────────────────────────────────────
+function renderClients(){
+  const q=(document.getElementById('c-srch')?.value||'').toLowerCase();
+  const f=ST.clients.filter(c=>c.name?.toLowerCase().includes(q)||c.cnpj?.includes(q));
+  document.getElementById('c-tb').innerHTML=f.length?f.map(c=>`<tr>
+    <td><b>${c.name}</b></td><td>${c.cnpj||c.cpf||'—'}</td><td>${c.phone||'—'}</td><td>${c.city||'—'}</td>
+    <td><div class="ac-cell"><button class="btn bs bsm" onclick="openCM(${c.id})">Editar</button>
+    <button class="btn bd2 bsm" onclick="delCli(${c.id})">Excluir</button></div></td></tr>`).join('')
+  :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--tx2)">Nenhum cliente</td></tr>';
+}
+
+function openCM(id=null){
+  ST.editC=id;
+  document.getElementById('cm-t').textContent=id?'Editar Cliente':'Novo Cliente';
+  const f=(fid,v)=>{const e=document.getElementById(fid);if(e)e.value=v||'';};
+  if(id){const c=ST.clients.find(x=>x.id===id);['nm','cj','cp','ph','em','ad','ci','st'].forEach((k,i)=>{const keys=['name','cnpj','cpf','phone','email','address','city','state'];f('cm-'+k,c[keys[i]]);});}
+  else ['nm','cj','cp','ph','em','ad','ci','st'].forEach(k=>{const e=document.getElementById('cm-'+k);if(e)e.value='';});
+  oM('m-client');
+}
+
+async function saveCli(){
+  const g=(k)=>document.getElementById('cm-'+k)?.value||'';
+  const data={name:g('nm'),cnpj:g('cj'),cpf:g('cp'),phone:g('ph'),email:g('em'),address:g('ad'),city:g('ci'),state:g('st')};
+  // Fix CPF/CNPJ duplicate
+  if(data.cpf&&data.cnpj&&data.cpf===data.cnpj) data.cpf='';
+  if(data.cpf&&data.cpf.replace(/\D/g,'').length>11) data.cpf='';
+  if(!data.name){toast('Nome é obrigatório','error');return;}
+  let r;
+  if(ST.editC) r=await api(`/api/clients/${ST.editC}`,'PUT',data);
+  else r=await api('/api/clients','POST',data);
+  if(r?.error){toast('Erro: '+r.error,'error');return;}
+  toast(ST.editC?'Cliente atualizado!':'Cliente cadastrado!','success');
+  cM('m-client');await loadAll();renderClients();
+}
+
+async function delCli(id){
+  if(!confirm('Excluir cliente?'))return;
+  await api(`/api/clients/${id}`,'DELETE');
+  toast('Excluído','info');await loadAll();renderClients();
+}
+
+// ── STORES ────────────────────────────────────────────────
+function renderStores(){
+  const q=(document.getElementById('s-srch')?.value||'').toLowerCase();
+  const f=ST.stores.filter(s=>s.name?.toLowerCase().includes(q)||s.client_name?.toLowerCase().includes(q));
+  document.getElementById('s-tb').innerHTML=f.length?f.map(s=>`<tr>
+    <td><b>${s.name}</b></td><td>${s.client_name||'—'}</td><td>${s.cnpj||'—'}</td><td>${s.city||'—'}</td><td>${s.manager_name||'—'}</td>
+    <td><div class="ac-cell"><button class="btn bs bsm" onclick="openSM(${s.id})">Editar</button>
+    <button class="btn bd2 bsm" onclick="delSt(${s.id})">Excluir</button></div></td></tr>`).join('')
+  :'<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--tx2)">Nenhuma loja</td></tr>';
+}
+
+function openSM(id=null){
+  ST.editS=id;
+  document.getElementById('sm-t').textContent=id?'Editar Loja':'Nova Loja';
+  fsel('sm-cl',ST.clients,c=>({v:c.id,t:c.name}));
+  if(id){const s=ST.stores.find(x=>x.id===id);
+    const f=(k,v)=>{const e=document.getElementById('sm-'+k);if(e)e.value=v||'';};
+    f('cl',s.client_id);f('nm',s.name);f('cj',s.cnpj);f('ph',s.phone);
+    f('ad',s.address);f('ci',s.city);f('st',s.state);f('mg',s.manager_name);f('gp',s.manager_phone);f('ge',s.manager_email);
+  }else['cl','nm','cj','ph','ad','ci','st','mg','gp','ge'].forEach(k=>{const e=document.getElementById('sm-'+k);if(e)e.value='';});
+  oM('m-store');
+}
+
+async function saveSt(){
+  const g=(k)=>document.getElementById('sm-'+k)?.value||'';
+  const data={client_id:parseInt(g('cl')),name:g('nm'),cnpj:g('cj'),phone:g('ph'),
+    address:g('ad'),city:g('ci'),state:g('st'),manager_name:g('mg'),manager_phone:g('gp'),manager_email:g('ge')};
+  if(!data.client_id||!data.name){toast('Cliente e nome são obrigatórios','error');return;}
+  let r;
+  if(ST.editS) r=await api(`/api/stores/${ST.editS}`,'PUT',data);
+  else r=await api('/api/stores','POST',data);
+  if(r?.error){toast('Erro: '+r.error,'error');return;}
+  toast(ST.editS?'Loja atualizada!':'Loja cadastrada!','success');
+  cM('m-store');await loadAll();renderStores();
+}
+
+async function delSt(id){
+  if(!confirm('Excluir loja?'))return;
+  await api(`/api/stores/${id}`,'DELETE');toast('Excluído','info');await loadAll();renderStores();
+}
+
+// ── EQUIPMENT ─────────────────────────────────────────────
+function renderEquip(){
+  const q=(document.getElementById('e-srch')?.value||'').toLowerCase();
+  const sf=document.getElementById('e-sf')?.value;
+  let f=ST.equip.filter(e=>e.name?.toLowerCase().includes(q)||e.brand?.toLowerCase().includes(q));
+  if(sf) f=f.filter(e=>e.store_id==sf);
+  document.getElementById('e-tb').innerHTML=f.length?f.map(e=>`<tr>
+    <td><b>${e.name}</b></td>
+    <td><span class="bdg bbl">${e.equipment_type||'—'}</span></td>
+    <td>${[e.brand,e.model].filter(Boolean).join(' / ')||'—'}</td>
+    <td><code style="font-size:11px">${e.serial_number||'—'}</code></td><td>${e.store_name||'—'}</td>
+    <td><div class="ac-cell"><button class="btn bs bsm" onclick="openEM(${e.id})">Editar</button>
+    <button class="btn bd2 bsm" onclick="delEq(${e.id})">Excluir</button></div></td></tr>`).join('')
+  :'<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--tx2)">Nenhum equipamento</td></tr>';
+}
+
+function openEM(id=null){
+  ST.editE=id;
+  document.getElementById('em-t').textContent=id?'Editar Equipamento':'Novo Equipamento';
+  fsel('em-st',ST.stores,s=>({v:s.id,t:s.name}));
+  if(id){const e=ST.equip.find(x=>x.id===id);
+    const f=(k,v)=>{const el=document.getElementById('em-'+k);if(el)el.value=v||'';};
+    f('st',e.store_id);f('nm',e.name);f('tp',e.equipment_type);f('br',e.brand);f('mo',e.model);
+    f('sr',e.serial_number);f('la',e.current_seal);f('lp',e.previous_seal);f('ea',e.current_label);f('ep',e.previous_label);
+    f('cm',e.max_load);f('po',e.portaria);f('mi',e.mict);
+  }else['st','nm','br','mo','sr','la','lp','ea','ep','cm','po','mi'].forEach(k=>{const e=document.getElementById('em-'+k);if(e)e.value='';});
+  oM('m-equip');
+}
+
+async function saveEq(){
+  const g=(k)=>document.getElementById('em-'+k)?.value||'';
+  const data={store_id:parseInt(g('st')),name:g('nm'),equipment_type:g('tp'),brand:g('br'),model:g('mo'),
+    serial_number:g('sr'),current_seal:g('la'),previous_seal:g('lp'),current_label:g('ea'),previous_label:g('ep'),
+    max_load:g('cm'),portaria:g('po'),mict:g('mi')};
+  if(!data.store_id||!data.name){toast('Loja e nome são obrigatórios','error');return;}
+  let r;
+  if(ST.editE) r=await api(`/api/equipment/${ST.editE}`,'PUT',data);
+  else r=await api('/api/equipment','POST',data);
+  if(r?.error){toast('Erro: '+r.error,'error');return;}
+  toast(ST.editE?'Atualizado!':'Cadastrado!','success');cM('m-equip');await loadAll();renderEquip();
+}
+
+async function delEq(id){
+  if(!confirm('Excluir equipamento?'))return;
+  await api(`/api/equipment/${id}`,'DELETE');toast('Excluído','info');await loadAll();renderEquip();
+}
+
+// ── TECHNICIANS ───────────────────────────────────────────
+function renderTechs(){
+  document.getElementById('t-tb').innerHTML=ST.techs.length?ST.techs.map(t=>`<tr>
+    <td><b>${t.name}</b></td><td>${t.phone||'—'}</td><td>${t.email||'—'}</td><td>${t.rg||'—'}</td>
+    <td><div class="ac-cell"><button class="btn bs bsm" onclick="openTM(${t.id})">Editar</button>
+    <button class="btn bd2 bsm" onclick="delTech(${t.id})">Excluir</button></div></td></tr>`).join('')
+  :'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--tx2)">Nenhum técnico</td></tr>';
+}
+
+function openTM(id=null){
+  ST.editT=id;
+  document.getElementById('tm-t').textContent=id?'Editar Técnico':'Novo Técnico';
+  if(id){const t=ST.techs.find(x=>x.id===id);
+    ['nm','ph','em','rg','cp','ad','ci','st'].forEach((k,i)=>{const keys=['name','phone','email','rg','cpf','address','city','state'];const e=document.getElementById('tm-'+k);if(e)e.value=t[keys[i]]||'';});}
+  else['nm','ph','em','rg','cp','ad','ci','st'].forEach(k=>{const e=document.getElementById('tm-'+k);if(e)e.value='';});
+  oM('m-tech');
+}
+
+async function saveTech(){
+  const g=(k)=>document.getElementById('tm-'+k)?.value||'';
+  const data={name:g('nm'),phone:g('ph'),email:g('em'),rg:g('rg'),cpf:g('cp'),address:g('ad'),city:g('ci'),state:g('st')};
+  if(!data.name){toast('Nome é obrigatório','error');return;}
+  let r;
+  if(ST.editT){
+    r=await api(`/api/technicians/${ST.editT}`,'PUT',data);
+    if(r?.error){toast('Erro: '+r.error,'error');return;}
+    toast('Técnico atualizado!','success');
+  } else {
+    r=await api('/api/technicians','POST',data);
+    if(r?.error){toast('Erro: '+r.error,'error');return;}
+    // Show auto-created user info
+    if(r.user_created){
+      const uc=r.user_created;
+      setTimeout(()=>{
+        if(confirm(
+          '✅ Técnico cadastrado!\n\n'+
+          '👤 Usuário criado automaticamente:\n'+
+          '   Login: '+uc.username+'\n'+
+          '   Senha temporária: '+uc.temp_password+'\n\n'+
+          'O técnico deverá trocar a senha no primeiro acesso.\n\n'+
+          'Clique OK para fechar.'
+        )){}
+      },200);
+    } else {
+      toast('Técnico cadastrado!','success');
+    }
+  }
+  cM('m-tech');await loadAll();renderTechs();popSels();
+}
+
+async function delTech(id){
+  if(!confirm('Excluir técnico?'))return;
+  await api(`/api/technicians/${id}`,'DELETE');toast('Excluído','info');await loadAll();renderTechs();
+}
+
+// ── USERS ─────────────────────────────────────────────────
+async function loadUsers(){
+  const users=await api('/api/users')||[];
+  const rn={'admin':'Administrador','technician':'Técnico','manager':'Gerente'};
+  document.getElementById('u-tb').innerHTML=users.length?users.map(u=>`<tr>
+    <td><b>${u.name}</b></td><td><code>${u.username}</code></td>
+    <td><span class="bdg ${u.role==='admin'?'bor':u.role==='manager'?'bbl':'bgr'}">${rn[u.role]||u.role}</span></td>
+    <td>${u.technician_name||u.store_name||'—'}</td>
+    <td>${u.first_login?'<span style="color:var(--wn);font-size:11px">⚠️ Pendente</span>':'<span style="color:var(--ac3);font-size:11px">✅ OK</span>'}</td>
+    <td><div class="ac-cell">
+      <button class="btn bs bsm" onclick="openUM(${u.id})">Editar</button>
+      <button class="btn bd2 bsm" onclick="delUser(${u.id})">Excluir</button>
+    </div></td></tr>`).join('')
+  :'<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--tx2)">Nenhum usuário</td></tr>';
+}
+
+function onRC(){
+  const r=document.getElementById('um-rl').value;
+  document.getElementById('um-tg').style.display=r==='technician'?'':'none';
+  document.getElementById('um-sg').style.display=r==='manager'?'':'none';
+}
+
+function openUM(id=null){
+  ST.editU=id;
+  document.getElementById('um-t').textContent=id?'Editar Usuário':'Novo Usuário';
+  fsel('um-tv',ST.techs,t=>({v:t.id,t:t.name}),true);
+  fsel('um-sv',ST.stores,s=>({v:s.id,t:s.name}),true);
+  if(id){/* could load user data here */}
+  else['nm','us','em','pw'].forEach(k=>{const e=document.getElementById('um-'+k);if(e)e.value='';});
+  document.getElementById('um-rl').value='technician';
+  onRC();oM('m-user');
+}
+
+async function saveUser(){
+  const g=(k)=>document.getElementById('um-'+k)?.value||'';
+  const data={name:g('nm'),username:g('us').toLowerCase(),email:g('em'),role:g('rl'),
+    technician_id:parseInt(g('tv'))||null,store_id:parseInt(g('sv'))||null,temp_password:g('pw')};
+  if(!data.name||!data.username){toast('Nome e usuário são obrigatórios','error');return;}
+  if(!data.temp_password&&!ST.editU){toast('Informe a senha temporária','error');return;}
+  let r;
+  if(ST.editU) r=await api(`/api/users/${ST.editU}`,'PUT',data);
+  else r=await api('/api/users','POST',data);
+  if(r?.error){toast('Erro: '+r.error,'error');return;}
+  toast(ST.editU?'Usuário atualizado!':'Usuário criado!','success');cM('m-user');loadUsers();
+}
+
+async function delUser(id){
+  if(!confirm('Excluir usuário?'))return;
+  await api(`/api/users/${id}`,'DELETE');toast('Excluído','info');loadUsers();
+}
+
+// ── COMPANY ───────────────────────────────────────────────
+function loadCoDom(){
+  const co=ST.co;
+  const f=(k,v)=>{const e=document.getElementById('co-'+k);if(e)e.value=v||'';};
+  f('n',co.name);f('c',co.cnpj);f('p',co.phone);f('e',co.email);f('a',co.address);
+  f('ci',co.city);f('st',co.state);f('z',co.cep);f('w',co.website);
+  f('im',co.insc_municipal);f('ie',co.insc_estadual);
+  f('sh',co.smtp_host);f('sp',co.smtp_port);f('su',co.smtp_user);
+  f('sf',co.smtp_from);f('pe',co.parts_email);
+  // Don't fill password (show as empty, server returns ***)
+}
+
+async function saveCo(){
+  if(ST.user?.role !== 'admin'){toast('Sem permissão para editar.','error');return;}
+  const g=(k)=>document.getElementById('co-'+k)?.value||'';
+  const data={name:g('n'),cnpj:g('c'),phone:g('p'),email:g('e'),address:g('a'),
+    city:g('ci'),state:g('st'),cep:g('z'),website:g('w'),insc_municipal:g('im'),insc_estadual:g('ie'),
+    smtp_host:g('sh'),smtp_port:parseInt(g('sp'))||587,smtp_user:g('su'),smtp_password:g('spw'),
+    smtp_from:g('sf'),parts_email:g('pe')};
+  const r=await api('/api/company','POST',data);
+  if(r?.error){toast('Erro: '+r.error,'error');return;}
+  toast('Dados salvos!','success');ST.co=r;
+}
+
+async function testEmail(){
+  const to=document.getElementById('test-to').value.trim();
+  if(!to){toast('Informe o email de teste','warn');return;}
+  const res=document.getElementById('test-res');
+  res.textContent='Enviando...';res.style.color='var(--tx2)';
+  const r=await api('/api/company/test-email','POST',{to});
+  if(r?.ok){res.textContent='✅ '+r.message;res.style.color='var(--ac3)';}
+  else{res.textContent='❌ '+(r?.message||'Falha');res.style.color='#f85149';}
+}
+
+// ── FAB ───────────────────────────────────────────────────
+async function updFab(count=null){
+  const fab=document.getElementById('fab');
+  const fn=document.getElementById('fabn');
+  if(count===null){const u=await api('/api/orders/today-unsigned');count=(u||[]).length;}
+  if(count>0){fab.style.display='flex';fn.textContent=count;}
+  else fab.style.display='none';
+}
+
+// ── MODALS ────────────────────────────────────────────────
+function oM(id){document.getElementById(id)?.classList.add('open');}
+function cM(id){document.getElementById(id)?.classList.remove('open');}
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('moverlay')) e.target.classList.remove('open');
+});
+</script>
+</body>
+</html>
