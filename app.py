@@ -60,6 +60,34 @@ CORS(app)
 db  = SQLAlchemy(app)
 ser = URLSafeTimedSerializer(SECRET_KEY)
 
+# ─── DB INIT (runs for both gunicorn and direct python) ───────────────────────
+def init_app():
+    """Cria tabelas e seed inicial. Chamado na inicialização."""
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Tabelas OK")
+        except Exception as e:
+            print(f"❌ Erro ao criar tabelas: {e}")
+            return
+        try:
+            if not User.query.first():
+                admin = User(
+                    name='Administrador', username='admin',
+                    email='admin@techos.local', role='admin', first_login=True
+                )
+                admin.set_password('admin123')
+                db.session.add(admin)
+                if not Company.query.first():
+                    db.session.add(Company(name='Minha Empresa', phone='', city='', state=''))
+                db.session.commit()
+                print('✅ Admin criado: admin / admin123')
+        except Exception as e:
+            print(f"⚠️  Seed: {e}")
+
+# Executa init ao importar o módulo (para gunicorn)
+init_app()
+
 # ─── MODELS ───────────────────────────────────────────────────────────────────
 
 class Company(db.Model):
@@ -906,42 +934,13 @@ def dashboard():
 
 # ─── STARTUP ──────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
-    with app.app_context():
-        try:
-            db.create_all()
-            print("✅ Tabelas verificadas/criadas.")
-        except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {e}")
-            print("   Verifique a conexão com o banco de dados.")
-            import sys; sys.exit(1)
-
-        try:
-            if not User.query.first():
-                admin = User(
-                    name='Administrador', username='admin',
-                    email='admin@techos.local', role='admin', first_login=True
-                )
-                admin.set_password('admin123')
-                db.session.add(admin)
-                if not Company.query.first():
-                    db.session.add(Company(
-                        name='Minha Empresa', phone='', city='', state=''
-                    ))
-                db.session.commit()
-                print('✅ Admin criado — usuário: admin | senha: admin123')
-                print('⚠️  Troque a senha no primeiro acesso!')
-        except Exception as e:
-            print(f"⚠️  Aviso no seed inicial: {e}")
-
     db_type = "MySQL" if USE_MYSQL else "SQLite (local)"
     print(f"\n{'='*50}")
     print(f"  🚀 TechOS iniciado com {db_type}")
     print(f"  🌐 Acesse: http://localhost:5000")
     print(f"  🔑 Login: admin / admin123")
     if not USE_MYSQL:
-        print(f"  ⚠️  ATENÇÃO: Rodando com SQLite local!")
-        print(f"     Para usar MySQL, libere o IP {DB_HOST} no EasyPanel.")
+        print(f"  ⚠️  Rodando com SQLite local!")
     print(f"{'='*50}\n")
-    # Em produção (Docker/EasyPanel) use gunicorn; debug=False
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(debug=debug_mode, port=5000, host='0.0.0.0')
