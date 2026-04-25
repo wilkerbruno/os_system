@@ -942,4 +942,6 @@ if __name__ == '__main__':
         print(f"  ⚠️  ATENÇÃO: Rodando com SQLite local!")
         print(f"     Para usar MySQL, libere o IP {DB_HOST} no EasyPanel.")
     print(f"{'='*50}\n")
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    # Em produção (Docker/EasyPanel) use gunicorn; debug=False
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug_mode, port=5000, host='0.0.0.0')
