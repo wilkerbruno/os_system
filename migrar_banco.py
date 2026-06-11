@@ -19,7 +19,7 @@ except ImportError:
     sys.exit(1)
 
 CONFIG = {
-    'host':     'easypanel.pontocomdesconto.com.br',
+    'host':     '2.25.131.174',
     'port':     3409,
     'user':     'mysql',
     'password': 'd95d2d9bcf70ab284a90',

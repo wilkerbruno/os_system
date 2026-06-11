@@ -10,10 +10,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
-DB_HOST     = os.environ.get('DB_HOST',     'easypanel.pontocomdesconto.com.br')
+DB_HOST     = os.environ.get('DB_HOST',     '2.25.131.174')
 DB_PORT     = os.environ.get('DB_PORT',     '3409')
 DB_USER     = os.environ.get('DB_USER',     'mysql')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'd95d2d9bcf70ab284a90')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'ea7cz6o5czxsv77g8gsg')
 DB_NAME     = os.environ.get('DB_NAME',     'os_sistem')
 SECRET_KEY  = os.environ.get('SECRET_KEY',  'techos-secret-2026-xK9mP3')
 
@@ -48,7 +48,7 @@ else:
     DB_URI = f"sqlite:///{_sqlite_path}"
     ENGINE_OPTS = {}
     print(f"⚠️  Usando SQLite local: {_sqlite_path}")
-    print("   Para usar MySQL, libere o IP da sua máquina no EasyPanel.")
+    print("   Para usar MySQL, verifique a conexão com 2.25.131.174:3409")
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
@@ -464,7 +464,6 @@ def parts_email_html(pr, co):
 
 @app.route('/')
 def index():
-    # Serve diretamente sem Jinja2 (evita conflito com sintaxe {# do JS/CSS)
     html_path = os.path.join(app.template_folder, 'index.html')
     with open(html_path, 'r', encoding='utf-8') as f:
         return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
@@ -705,9 +704,8 @@ def create_technician():
         data = request.json or {}
         t = Technician(**{k: v for k, v in data.items() if hasattr(Technician,k) and k!='id'})
         db.session.add(t)
-        db.session.flush()  # gera t.id antes de criar o usuário
+        db.session.flush()
 
-        # Gera username a partir do nome: "João Silva" → "joao.silva"
         import unicodedata
         def slugify(name):
             n = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode()
@@ -724,7 +722,6 @@ def create_technician():
             username = f"{base_username}{counter}"
             counter += 1
 
-        # Senha temporária padrão = "techos123" (técnico troca no 1º acesso)
         temp_pw = data.get('temp_password', 'techos123')
 
         user = User(
@@ -832,7 +829,6 @@ def batch_sign():
 @app.route('/api/orders/pending-sign', methods=['GET'])
 @auth_required
 def pending_sign():
-    """OSs NÃO assinadas com filtro de técnico e data."""
     tid = request.args.get('technician_id')
     dt  = request.args.get('date')
     q = os_role_filter(ServiceOrder.query.filter(ServiceOrder.status != 'Assinada'), g.user)
@@ -941,6 +937,7 @@ if __name__ == '__main__':
     print(f"  🔑 Login: admin / admin123")
     if not USE_MYSQL:
         print(f"  ⚠️  Rodando com SQLite local!")
+        print(f"  ▶  Verifique a conexão com 2.25.131.174:3409")
     print(f"{'='*50}\n")
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(debug=debug_mode, port=5000, host='0.0.0.0')

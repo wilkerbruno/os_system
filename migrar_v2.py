@@ -8,7 +8,7 @@ import sys
 try: import pymysql
 except ImportError: print("pip install pymysql"); sys.exit(1)
 
-CONFIG = dict(host='easypanel.pontocomdesconto.com.br',port=3409,user='mysql',
+CONFIG = dict(host='2.25.131.174',port=3409,user='mysql',
               password='d95d2d9bcf70ab284a90',database='os_sistem',charset='utf8mb4',connect_timeout=15)
 
 NEW_COLS = [
