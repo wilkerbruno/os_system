@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, g
+from flask import Flask, request, jsonify, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime, date
@@ -10,14 +10,13 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
-DB_HOST     = os.environ.get('DB_HOST',     '2.25.131.174')
-DB_PORT     = os.environ.get('DB_PORT',     '3409')
+DB_HOST     = os.environ.get('DB_HOST',     'os-system.banco-de-dados.svc.cluster.local')
+DB_PORT     = os.environ.get('DB_PORT',     '3306')
 DB_USER     = os.environ.get('DB_USER',     'mysql')
 DB_PASSWORD = os.environ.get('DB_PASSWORD', 'ea7cz6o5czxsv77g8gsg')
 DB_NAME     = os.environ.get('DB_NAME',     'os_sistem')
 SECRET_KEY  = os.environ.get('SECRET_KEY',  'techos-secret-2026-xK9mP3')
 
-# Testa conexão MySQL antes de configurar; cai para SQLite se falhar
 def _test_mysql():
     try:
         import pymysql
@@ -43,12 +42,10 @@ if USE_MYSQL:
     }
     print(f"✅ Usando MySQL: {DB_HOST}:{DB_PORT}/{DB_NAME}")
 else:
-    # Fallback para SQLite local
     _sqlite_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'techos_local.db')
     DB_URI = f"sqlite:///{_sqlite_path}"
     ENGINE_OPTS = {}
     print(f"⚠️  Usando SQLite local: {_sqlite_path}")
-    print("   Para usar MySQL, verifique a conexão com 2.25.131.174:3409")
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
@@ -60,35 +57,8 @@ CORS(app)
 db  = SQLAlchemy(app)
 ser = URLSafeTimedSerializer(SECRET_KEY)
 
-# ─── DB INIT (runs for both gunicorn and direct python) ───────────────────────
-def init_app():
-    """Cria tabelas e seed inicial. Chamado na inicialização."""
-    with app.app_context():
-        try:
-            db.create_all()
-            print("✅ Tabelas OK")
-        except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {e}")
-            return
-        try:
-            if not User.query.first():
-                admin = User(
-                    name='Administrador', username='admin',
-                    email='admin@techos.local', role='admin', first_login=True
-                )
-                admin.set_password('admin123')
-                db.session.add(admin)
-                if not Company.query.first():
-                    db.session.add(Company(name='Minha Empresa', phone='', city='', state=''))
-                db.session.commit()
-                print('✅ Admin criado: admin / admin123')
-        except Exception as e:
-            print(f"⚠️  Seed: {e}")
-
-# Executa init ao importar o módulo (para gunicorn)
-init_app()
-
 # ─── MODELS ───────────────────────────────────────────────────────────────────
+# IMPORTANTE: todos os models devem ser declarados ANTES de init_app()
 
 class Company(db.Model):
     __tablename__ = 'company'
@@ -115,39 +85,6 @@ class Company(db.Model):
     def to_dict(self):
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         d['smtp_password'] = '***' if d.get('smtp_password') else ''
-        return d
-
-class User(db.Model):
-    __tablename__ = 'user'
-    id            = db.Column(db.Integer, primary_key=True)
-    name          = db.Column(db.String(200), nullable=False)
-    username      = db.Column(db.String(100), unique=True, nullable=False)
-    email         = db.Column(db.String(150), unique=True)
-    password_hash = db.Column(db.String(256))
-    role          = db.Column(db.String(20), default='technician')
-    technician_id = db.Column(db.Integer, db.ForeignKey('technician.id'), nullable=True)
-    store_id      = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=True)
-    first_login   = db.Column(db.Boolean, default=True)
-    active        = db.Column(db.Boolean, default=True)
-    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
-    def set_password(self, pw):
-        self.password_hash = generate_password_hash(pw)
-    def check_password(self, pw):
-        if not self.password_hash: return False
-        return check_password_hash(self.password_hash, pw)
-    def to_dict(self):
-        d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        d.pop('password_hash', None)
-        if self.technician_id:
-            t = Technician.query.get(self.technician_id)
-            d['technician_name'] = t.name if t else ''
-        else:
-            d['technician_name'] = ''
-        if self.store_id:
-            s = Store.query.get(self.store_id)
-            d['store_name'] = s.name if s else ''
-        else:
-            d['store_name'] = ''
         return d
 
 class Client(db.Model):
@@ -189,6 +126,23 @@ class Store(db.Model):
         d['client_name'] = self.client.name if self.client else ''
         return d
 
+class Technician(db.Model):
+    __tablename__ = 'technician'
+    id         = db.Column(db.Integer, primary_key=True)
+    name       = db.Column(db.String(200), nullable=False)
+    phone      = db.Column(db.String(30))
+    email      = db.Column(db.String(150))
+    address    = db.Column(db.String(300))
+    city       = db.Column(db.String(100))
+    state      = db.Column(db.String(50))
+    rg         = db.Column(db.String(30))
+    cpf        = db.Column(db.String(30))
+    active     = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    service_orders = db.relationship('ServiceOrder', backref='technician', lazy=True)
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 class Equipment(db.Model):
     __tablename__ = 'equipment'
     id             = db.Column(db.Integer, primary_key=True)
@@ -213,22 +167,32 @@ class Equipment(db.Model):
         d['store_name'] = self.store.name if self.store else ''
         return d
 
-class Technician(db.Model):
-    __tablename__ = 'technician'
-    id         = db.Column(db.Integer, primary_key=True)
-    name       = db.Column(db.String(200), nullable=False)
-    phone      = db.Column(db.String(30))
-    email      = db.Column(db.String(150))
-    address    = db.Column(db.String(300))
-    city       = db.Column(db.String(100))
-    state      = db.Column(db.String(50))
-    rg         = db.Column(db.String(30))
-    cpf        = db.Column(db.String(30))
-    active     = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    service_orders = db.relationship('ServiceOrder', backref='technician', lazy=True)
+class User(db.Model):
+    __tablename__ = 'user'
+    id            = db.Column(db.Integer, primary_key=True)
+    name          = db.Column(db.String(200), nullable=False)
+    username      = db.Column(db.String(100), unique=True, nullable=False)
+    email         = db.Column(db.String(150), unique=True)
+    password_hash = db.Column(db.String(256))
+    role          = db.Column(db.String(20), default='technician')
+    technician_id = db.Column(db.Integer, db.ForeignKey('technician.id'), nullable=True)
+    store_id      = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=True)
+    first_login   = db.Column(db.Boolean, default=True)
+    active        = db.Column(db.Boolean, default=True)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+    def set_password(self, pw):
+        self.password_hash = generate_password_hash(pw)
+    def check_password(self, pw):
+        if not self.password_hash: return False
+        return check_password_hash(self.password_hash, pw)
     def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        d.pop('password_hash', None)
+        t = Technician.query.get(self.technician_id) if self.technician_id else None
+        d['technician_name'] = t.name if t else ''
+        s = Store.query.get(self.store_id) if self.store_id else None
+        d['store_name'] = s.name if s else ''
+        return d
 
 class ServiceOrder(db.Model):
     __tablename__ = 'service_order'
@@ -307,9 +271,9 @@ class PartsRequest(db.Model):
     items          = db.relationship('PartsRequestItem', backref='request', lazy=True, cascade='all, delete-orphan')
     def to_dict(self):
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        d['created_at']   = self.created_at.isoformat() if self.created_at else ''
-        d['updated_at']   = self.updated_at.isoformat() if self.updated_at else ''
-        d['email_sent_at']= self.email_sent_at.isoformat() if self.email_sent_at else ''
+        d['created_at']    = self.created_at.isoformat() if self.created_at else ''
+        d['updated_at']    = self.updated_at.isoformat() if self.updated_at else ''
+        d['email_sent_at'] = self.email_sent_at.isoformat() if self.email_sent_at else ''
         tech  = Technician.query.get(self.technician_id)
         store = Store.query.get(self.store_id) if self.store_id else None
         equip = Equipment.query.get(self.equipment_id) if self.equipment_id else None
@@ -333,6 +297,41 @@ class PartsRequestItem(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+# ─── DB INIT ──────────────────────────────────────────────────────────────────
+# Chamado APÓS todos os models estarem definidos
+def init_app():
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Tabelas criadas/verificadas com sucesso")
+        except Exception as e:
+            print(f"❌ Erro ao criar tabelas: {e}")
+            return
+        try:
+            # Seed admin
+            if not User.query.filter_by(username='admin').first():
+                admin = User(
+                    name='Administrador', username='admin',
+                    email='admin@techos.local', role='admin',
+                    first_login=False, active=True
+                )
+                admin.set_password('admin123')
+                db.session.add(admin)
+                print("✅ Usuário admin criado (admin / admin123)")
+            else:
+                print("✅ Usuário admin já existe")
+            # Seed company
+            if not Company.query.first():
+                db.session.add(Company(name='Minha Empresa', phone='', city='', state=''))
+                print("✅ Empresa padrão criada")
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Erro no seed: {e}")
+
+# Executa init AGORA — todos os models já foram declarados acima
+init_app()
+
 # ─── AUTH HELPERS ─────────────────────────────────────────────────────────────
 
 def gen_token(uid):
@@ -346,7 +345,7 @@ def check_token(token):
         return None
 
 def current_user():
-    h = request.headers.get('Authorization','')
+    h = request.headers.get('Authorization', '')
     if h.startswith('Bearer '):
         return check_token(h[7:])
     return None
@@ -355,7 +354,7 @@ def auth_required(f):
     @wraps(f)
     def d(*a, **kw):
         u = current_user()
-        if not u: return jsonify({'error':'Não autorizado. Faça login.'}), 401
+        if not u: return jsonify({'error': 'Não autorizado. Faça login.'}), 401
         g.user = u
         return f(*a, **kw)
     return d
@@ -364,13 +363,13 @@ def admin_required(f):
     @wraps(f)
     def d(*a, **kw):
         u = current_user()
-        if not u: return jsonify({'error':'Não autorizado.'}), 401
-        if u.role != 'admin': return jsonify({'error':'Acesso restrito a administradores.'}), 403
+        if not u: return jsonify({'error': 'Não autorizado.'}), 401
+        if u.role != 'admin': return jsonify({'error': 'Acesso restrito a administradores.'}), 403
         g.user = u
         return f(*a, **kw)
     return d
 
-# ─── HELPERS ─────────────────────────────────────────────────────────────────
+# ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 def sanitize_str(v, mx=None):
     if v is None: return None
@@ -384,7 +383,7 @@ def sanitize_client(data):
     cpf  = (c.get('cpf') or '').strip()
     if cpf and len(cpf) > 14: c['cpf'] = None
     if cpf and cnpj and cpf == cnpj: c['cpf'] = None
-    for f in ('phone','cnpj','cpf','cep'):
+    for f in ('phone', 'cnpj', 'cpf', 'cep'):
         if f in c: c[f] = sanitize_str(c[f], 30)
     c['state'] = sanitize_str(c.get('state'), 50)
     c['email'] = sanitize_str(c.get('email'), 150)
@@ -392,11 +391,11 @@ def sanitize_client(data):
 
 def gen_os():
     last = ServiceOrder.query.order_by(ServiceOrder.id.desc()).first()
-    return f"{(last.id+1) if last else 1:06d}"
+    return f"{(last.id + 1) if last else 1:06d}"
 
 def gen_req():
     last = PartsRequest.query.order_by(PartsRequest.id.desc()).first()
-    return f"REQ-{(last.id+1) if last else 1:05d}"
+    return f"REQ-{(last.id + 1) if last else 1:05d}"
 
 def os_role_filter(q, user):
     if user.role == 'technician' and user.technician_id:
@@ -425,11 +424,14 @@ def send_email(subject, html, to_list):
         return False, f'Erro SMTP: {e}'
 
 def parts_email_html(pr, co):
-    uc = {'Normal':'#58a6ff','Urgente':'#d29922','Crítico':'#f85149'}.get(pr.urgency,'#58a6ff')
-    rows = ''.join(f"<tr><td style='padding:7px 10px;border-bottom:1px solid #eee'>{i.code or '-'}</td>"
-                   f"<td style='padding:7px 10px;border-bottom:1px solid #eee'>{i.description}</td>"
-                   f"<td style='padding:7px 10px;border-bottom:1px solid #eee;text-align:center'>{i.quantity} {i.unit}</td>"
-                   f"<td style='padding:7px 10px;border-bottom:1px solid #eee'>{i.notes or ''}</td></tr>" for i in pr.items)
+    uc = {'Normal': '#58a6ff', 'Urgente': '#d29922', 'Crítico': '#f85149'}.get(pr.urgency, '#58a6ff')
+    rows = ''.join(
+        f"<tr><td style='padding:7px 10px;border-bottom:1px solid #eee'>{i.code or '-'}</td>"
+        f"<td style='padding:7px 10px;border-bottom:1px solid #eee'>{i.description}</td>"
+        f"<td style='padding:7px 10px;border-bottom:1px solid #eee;text-align:center'>{i.quantity} {i.unit}</td>"
+        f"<td style='padding:7px 10px;border-bottom:1px solid #eee'>{i.notes or ''}</td></tr>"
+        for i in pr.items
+    )
     tech  = Technician.query.get(pr.technician_id)
     store = Store.query.get(pr.store_id) if pr.store_id else None
     equip = Equipment.query.get(pr.equipment_id) if pr.equipment_id else None
@@ -456,11 +458,11 @@ def parts_email_html(pr, co):
           </tr></thead>
           <tbody>{rows}</tbody>
         </table>
-        {'<p style="margin-top:12px;font-size:13px"><b>Observações:</b> '+pr.notes+'</p>' if pr.notes else ''}
-        <p style="margin-top:16px;font-size:11px;color:#999">Gerado pelo TechOS — Sistema de OS</p>
+        {'<p style="margin-top:12px;font-size:13px"><b>Observações:</b> ' + pr.notes + '</p>' if pr.notes else ''}
+        <p style="margin-top:16px;font-size:11px;color:#999">Gerado pelo TechOS</p>
       </div></div>"""
 
-# ─── ROUTES ──────────────────────────────────────────────────────────────────
+# ─── ROUTES ───────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
@@ -479,7 +481,7 @@ def login():
         User.active == True
     ).first()
     if not u or not u.check_password(pw):
-        return jsonify({'error':'Usuário ou senha incorretos.'}), 401
+        return jsonify({'error': 'Usuário ou senha incorretos.'}), 401
     return jsonify({'token': gen_token(u.id), 'user': u.to_dict(), 'first_login': u.first_login})
 
 @app.route('/api/auth/set-password', methods=['POST'])
@@ -488,11 +490,9 @@ def set_password():
     uname = (d.get('username') or '').strip().lower()
     pw    = d.get('password') or ''
     if len(pw) < 6:
-        return jsonify({'error':'Senha deve ter ao menos 6 caracteres.'}), 400
-    u = User.query.filter(
-        db.or_(User.username == uname, User.email == uname)
-    ).first()
-    if not u: return jsonify({'error':'Usuário não encontrado.'}), 404
+        return jsonify({'error': 'Senha deve ter ao menos 6 caracteres.'}), 400
+    u = User.query.filter(db.or_(User.username == uname, User.email == uname)).first()
+    if not u: return jsonify({'error': 'Usuário não encontrado.'}), 404
     u.set_password(pw); u.first_login = False
     db.session.commit()
     return jsonify({'token': gen_token(u.id), 'user': u.to_dict()})
@@ -514,12 +514,12 @@ def create_user():
         d = request.json or {}
         uname = (d.get('username') or '').strip().lower()
         if not uname or not d.get('name'):
-            return jsonify({'error':'Nome e usuário são obrigatórios.'}), 400
+            return jsonify({'error': 'Nome e usuário são obrigatórios.'}), 400
         if User.query.filter_by(username=uname).first():
-            return jsonify({'error':'Usuário já existe.'}), 400
+            return jsonify({'error': 'Usuário já existe.'}), 400
         u = User(name=d['name'], username=uname,
                  email=(d.get('email') or '').strip() or None,
-                 role=d.get('role','technician'),
+                 role=d.get('role', 'technician'),
                  technician_id=d.get('technician_id') or None,
                  store_id=d.get('store_id') or None,
                  first_login=True, active=True)
@@ -535,9 +535,9 @@ def update_user(uid):
     try:
         u = User.query.get_or_404(uid)
         d = request.json or {}
-        for f in ('name','email','role'):
+        for f in ('name', 'email', 'role'):
             if f in d: setattr(u, f, d[f])
-        for f in ('technician_id','store_id'):
+        for f in ('technician_id', 'store_id'):
             if f in d: setattr(u, f, d[f] or None)
         if d.get('username'): u.username = d['username'].strip().lower()
         if d.get('temp_password'):
@@ -581,9 +581,9 @@ def save_company():
 @app.route('/api/company/test-email', methods=['POST'])
 @admin_required
 def test_email():
-    to = (request.json or {}).get('to','')
-    if not to: return jsonify({'error':'Informe o email de destino.'}), 400
-    ok, msg = send_email('TechOS — Teste de Email','<h2>✅ Email configurado com sucesso!</h2>',[to])
+    to = (request.json or {}).get('to', '')
+    if not to: return jsonify({'error': 'Informe o email de destino.'}), 400
+    ok, msg = send_email('TechOS — Teste de Email', '<h2>✅ Email configurado com sucesso!</h2>', [to])
     return jsonify({'ok': ok, 'message': msg})
 
 # Clients
@@ -596,7 +596,7 @@ def get_clients():
 @auth_required
 def create_client():
     try:
-        c = Client(**{k: v for k, v in sanitize_client(request.json or {}).items() if hasattr(Client,k) and k!='id'})
+        c = Client(**{k: v for k, v in sanitize_client(request.json or {}).items() if hasattr(Client, k) and k != 'id'})
         db.session.add(c); db.session.commit(); return jsonify(c.to_dict()), 201
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -607,7 +607,7 @@ def update_client(cid):
     try:
         c = Client.query.get_or_404(cid)
         for k, v in sanitize_client(request.json or {}).items():
-            if hasattr(c,k) and k!='id': setattr(c,k,v)
+            if hasattr(c, k) and k != 'id': setattr(c, k, v)
         db.session.commit(); return jsonify(c.to_dict())
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -632,7 +632,7 @@ def get_stores():
 def create_store():
     try:
         d = request.json or {}
-        s = Store(**{k: v for k, v in d.items() if hasattr(Store,k) and k not in ('id','client_name')})
+        s = Store(**{k: v for k, v in d.items() if hasattr(Store, k) and k not in ('id', 'client_name')})
         db.session.add(s); db.session.commit(); return jsonify(s.to_dict()), 201
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -643,7 +643,7 @@ def update_store(sid):
     try:
         s = Store.query.get_or_404(sid)
         for k, v in (request.json or {}).items():
-            if hasattr(s,k) and k not in ('id','client_name'): setattr(s,k,v)
+            if hasattr(s, k) and k not in ('id', 'client_name'): setattr(s, k, v)
         db.session.commit(); return jsonify(s.to_dict())
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -669,7 +669,7 @@ def get_equipment():
 def create_equipment():
     try:
         d = request.json or {}
-        e = Equipment(**{k: v for k, v in d.items() if hasattr(Equipment,k) and k not in ('id','store_name')})
+        e = Equipment(**{k: v for k, v in d.items() if hasattr(Equipment, k) and k not in ('id', 'store_name')})
         db.session.add(e); db.session.commit(); return jsonify(e.to_dict()), 201
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -680,7 +680,7 @@ def update_equipment(eid):
     try:
         e = Equipment.query.get_or_404(eid)
         for k, v in (request.json or {}).items():
-            if hasattr(e,k) and k not in ('id','store_name'): setattr(e,k,v)
+            if hasattr(e, k) and k not in ('id', 'store_name'): setattr(e, k, v)
         db.session.commit(); return jsonify(e.to_dict())
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -702,47 +702,28 @@ def get_technicians():
 def create_technician():
     try:
         data = request.json or {}
-        t = Technician(**{k: v for k, v in data.items() if hasattr(Technician,k) and k!='id'})
+        t = Technician(**{k: v for k, v in data.items() if hasattr(Technician, k) and k != 'id'})
         db.session.add(t)
         db.session.flush()
-
         import unicodedata
         def slugify(name):
             n = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode()
             n = ''.join(c for c in n if c.isalnum() or c.isspace()).strip().lower()
             parts = n.split()
-            if len(parts) >= 2:
-                return parts[0] + '.' + parts[-1]
-            return parts[0] if parts else 'tecnico'
-
+            return (parts[0] + '.' + parts[-1]) if len(parts) >= 2 else (parts[0] if parts else 'tecnico')
         base_username = slugify(t.name)
-        username = base_username
-        counter = 1
+        username = base_username; counter = 1
         while User.query.filter_by(username=username).first():
-            username = f"{base_username}{counter}"
-            counter += 1
-
+            username = f"{base_username}{counter}"; counter += 1
         temp_pw = data.get('temp_password', 'techos123')
-
-        user = User(
-            name=t.name,
-            username=username,
-            email=t.email or None,
-            role='technician',
-            technician_id=t.id,
-            first_login=True,
-            active=True
-        )
+        user = User(name=t.name, username=username, email=t.email or None,
+                    role='technician', technician_id=t.id, first_login=True, active=True)
         user.set_password(temp_pw)
         db.session.add(user)
         db.session.commit()
-
         result = t.to_dict()
-        result['user_created'] = {
-            'username': username,
-            'temp_password': temp_pw,
-            'message': f'Usuário "{username}" criado com senha temporária "{temp_pw}".'
-        }
+        result['user_created'] = {'username': username, 'temp_password': temp_pw,
+            'message': f'Usuário "{username}" criado com senha temporária "{temp_pw}".'}
         return jsonify(result), 201
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -753,7 +734,7 @@ def update_technician(tid):
     try:
         t = Technician.query.get_or_404(tid)
         for k, v in (request.json or {}).items():
-            if hasattr(t,k) and k!='id': setattr(t,k,v)
+            if hasattr(t, k) and k != 'id': setattr(t, k, v)
         db.session.commit(); return jsonify(t.to_dict())
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -769,10 +750,10 @@ def delete_technician(tid):
 @auth_required
 def get_orders():
     q = os_role_filter(ServiceOrder.query, g.user)
-    sid  = request.args.get('store_id')
-    tid  = request.args.get('technician_id')
-    st   = request.args.get('status')
-    dt   = request.args.get('date')
+    sid = request.args.get('store_id')
+    tid = request.args.get('technician_id')
+    st  = request.args.get('status')
+    dt  = request.args.get('date')
     if sid: q = q.filter(ServiceOrder.store_id == sid)
     if tid: q = q.filter(ServiceOrder.technician_id == tid)
     if st:  q = q.filter(ServiceOrder.status == st)
@@ -785,7 +766,7 @@ def create_order():
     try:
         d = request.json or {}
         o = ServiceOrder(os_number=gen_os(),
-            **{k: v for k, v in d.items() if hasattr(ServiceOrder,k) and k not in ('id','os_number')})
+            **{k: v for k, v in d.items() if hasattr(ServiceOrder, k) and k not in ('id', 'os_number')})
         db.session.add(o); db.session.commit(); return jsonify(o.to_dict()), 201
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -801,7 +782,7 @@ def update_order(oid):
     try:
         o = ServiceOrder.query.get_or_404(oid)
         for k, v in (request.json or {}).items():
-            if hasattr(o,k) and k not in ('id','os_number','created_at'): setattr(o,k,v)
+            if hasattr(o, k) and k not in ('id', 'os_number', 'created_at'): setattr(o, k, v)
         o.updated_at = datetime.utcnow(); db.session.commit(); return jsonify(o.to_dict())
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -820,9 +801,9 @@ def batch_sign():
     for oid in (d.get('order_ids') or []):
         o = ServiceOrder.query.get(oid)
         if o:
-            o.signer_name = d.get('signer_name','')
-            o.signer_role = d.get('signer_role','')
-            o.client_signature = d.get('signature','')
+            o.signer_name = d.get('signer_name', '')
+            o.signer_role = d.get('signer_role', '')
+            o.client_signature = d.get('signature', '')
             o.signed_at = now; o.status = 'Assinada'; count += 1
     db.session.commit(); return jsonify({'ok': True, 'signed': count})
 
@@ -864,11 +845,11 @@ def create_parts_request():
         d = request.json or {}
         items_data = d.pop('items', [])
         pr = PartsRequest(request_number=gen_req(),
-            **{k: v for k, v in d.items() if hasattr(PartsRequest,k) and k not in ('id','request_number','items')})
+            **{k: v for k, v in d.items() if hasattr(PartsRequest, k) and k not in ('id', 'request_number', 'items')})
         db.session.add(pr); db.session.flush()
         for item in items_data:
             db.session.add(PartsRequestItem(request_id=pr.id,
-                **{k: v for k, v in item.items() if hasattr(PartsRequestItem,k) and k not in ('id','request_id')}))
+                **{k: v for k, v in item.items() if hasattr(PartsRequestItem, k) and k not in ('id', 'request_id')}))
         db.session.commit(); return jsonify(pr.to_dict()), 201
     except Exception as e:
         db.session.rollback(); return jsonify({'error': str(e)}), 400
@@ -894,9 +875,10 @@ def send_parts_email(rid):
     if tech and tech.email: to.append(tech.email)
     to = list(set(to))
     if not to:
-        return jsonify({'ok':False,'message':'Configure o email de peças em Minha Empresa.'}), 400
-    ok, msg = send_email(f"[TechOS] {pr.request_number} — Solicitação de Peças ({pr.urgency})",
-                         parts_email_html(pr, co), to)
+        return jsonify({'ok': False, 'message': 'Configure o email de peças em Minha Empresa.'}), 400
+    ok, msg = send_email(
+        f"[TechOS] {pr.request_number} — Solicitação de Peças ({pr.urgency})",
+        parts_email_html(pr, co), to)
     if ok:
         pr.email_sent = True; pr.email_sent_at = datetime.utcnow(); db.session.commit()
     return jsonify({'ok': ok, 'message': msg})
@@ -917,15 +899,15 @@ def dashboard():
     if g.user.role == 'technician' and g.user.technician_id:
         pr_q = pr_q.filter_by(technician_id=g.user.technician_id)
     return jsonify({
-        'total_orders':   bq.count(),
-        'today_orders':   bq.filter(ServiceOrder.service_date == today).count(),
-        'signed_today':   bq.filter(ServiceOrder.service_date == today, ServiceOrder.status == 'Assinada').count(),
-        'open_orders':    bq.filter(ServiceOrder.status != 'Assinada').count(),
-        'pending_parts':  pr_q.filter_by(status='Pendente').count(),
-        'total_clients':  Client.query.count(),
-        'total_stores':   Store.query.count(),
-        'total_equipment':Equipment.query.filter_by(active=True).count(),
-        'total_techs':    Technician.query.filter_by(active=True).count(),
+        'total_orders':    bq.count(),
+        'today_orders':    bq.filter(ServiceOrder.service_date == today).count(),
+        'signed_today':    bq.filter(ServiceOrder.service_date == today, ServiceOrder.status == 'Assinada').count(),
+        'open_orders':     bq.filter(ServiceOrder.status != 'Assinada').count(),
+        'pending_parts':   pr_q.filter_by(status='Pendente').count(),
+        'total_clients':   Client.query.count(),
+        'total_stores':    Store.query.count(),
+        'total_equipment': Equipment.query.filter_by(active=True).count(),
+        'total_techs':     Technician.query.filter_by(active=True).count(),
     })
 
 # ─── STARTUP ──────────────────────────────────────────────────────────────────
@@ -935,9 +917,6 @@ if __name__ == '__main__':
     print(f"  🚀 TechOS iniciado com {db_type}")
     print(f"  🌐 Acesse: http://localhost:5000")
     print(f"  🔑 Login: admin / admin123")
-    if not USE_MYSQL:
-        print(f"  ⚠️  Rodando com SQLite local!")
-        print(f"  ▶  Verifique a conexão com 2.25.131.174:3409")
     print(f"{'='*50}\n")
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(debug=debug_mode, port=5000, host='0.0.0.0')
